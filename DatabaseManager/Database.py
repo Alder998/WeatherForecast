@@ -102,6 +102,7 @@ class Database:
                 print('Number of Unique Values for column: ' + col + ':' +
                       ' {:,}'.format(len(data[col].unique())).replace(',', '.'))
         print('\n')
+        return data
 
     def excludeValuesAlreadyPresentFromTable (self, dataFrame, tableName, keyColumn):
 

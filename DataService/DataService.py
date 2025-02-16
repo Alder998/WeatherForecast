@@ -132,8 +132,8 @@ class DataService:
                     wForCoord.append(wData)
                 wForCoord = pd.concat([df for df in wForCoord], axis=0).reset_index(drop=True)
             except:
-                print("Max Retries or Connection lost! Saving the file as is...")
-                wForCoord = pd.concat([df for df in wForCoord], axis=0).reset_index(drop=True)
+                raise Exception ("Max Retries or Connection lost! Impossible to carry out each point download!")
+                #wForCoord = pd.concat([df for df in wForCoord], axis=0).reset_index(drop=True)
 
             # Load Database
             # Table Name wrt granularity of abservations
@@ -144,7 +144,13 @@ class DataService:
             else:
                 self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True)
             # See The database Statistics
-            self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'])
+            dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'])
+            # Adding logs
+            dataForLogs['date'] = pd.to_datetime(dataForLogs['date']).dt.date()
+            obsForDate = dataForLogs[['date', 'lat']].groupby('date', as_index=False).sum()
+            print('Start date: ' + str(dataForLogs['date'].drop_duplicates().min()) +
+                  ' - End Date: ' + str(dataForLogs['date'].drop_duplicates().max()))
+            print('Average Observation for day: ' + str(obsForDate['lat'].mean()))
 
             return wForCoord
 
