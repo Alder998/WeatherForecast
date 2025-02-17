@@ -140,17 +140,19 @@ class DataService:
             tableName = 'WeatherForRegion_' + str(grid_step)
             tablePresent = self.databaseModule().checkIfTableIsInDatabase(tableName)
             if not tablePresent:
+                print('Creating Table...')
                 self.databaseModule().createTable(wForCoord, tableName)
             else:
+                print('Appending Table to the exiting one...')
                 self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True)
             # See The database Statistics
             dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'])
             # Adding logs
-            dataForLogs['date'] = pd.to_datetime(dataForLogs['date']).dt.date()
-            obsForDate = dataForLogs[['date', 'lat']].groupby('date', as_index=False).sum()
+            dataForLogs['date'] = pd.to_datetime(dataForLogs['date']).dt.date
+            obsForDate = dataForLogs[['date', 'latitude']].groupby('date', as_index=False).count()
             print('Start date: ' + str(dataForLogs['date'].drop_duplicates().min()) +
                   ' - End Date: ' + str(dataForLogs['date'].drop_duplicates().max()))
-            print('Average Observation for day: ' + str(obsForDate['lat'].mean()))
+            print('Average Observation for day: ' + str(obsForDate['latitude'].mean()))
 
             return wForCoord
 

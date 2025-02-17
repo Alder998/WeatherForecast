@@ -63,11 +63,11 @@ class Database:
         if tablePresent:
             inputAnswer = input('You are currently overwriting an existing Table. If you want to continue with this action, please type "Y": ')
             if inputAnswer.lower() == 'y':
-                action = self.saveTableInDatabase(dataFrame, tableName, mode='replace')
+                action = self.saveTableInDatabase(dataFrame, tableName, mode='append')
             else:
                 raise Exception('A Table with the same name is already Existing!')
         else:
-            action = self.saveTableInDatabase(dataFrame, tableName, mode='replace')
+            action = self.saveTableInDatabase(dataFrame, tableName, mode='append')
         return action
 
     def appendDataToExistingTable (self,  dataFrame, existingTableName, drop_duplicates = True):
