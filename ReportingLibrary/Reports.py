@@ -7,9 +7,9 @@ import LocalizedWeather as locl
 #                                                                        end_date='2025-01-20',
 #                                                                        grid_step = 0.22)
 
-comparison = locl.LocalizedWeather().compareWeatherForCities(city1 = 'Milano',
-                                                             city2 = 'Chiavari',
+comparison = locl.LocalizedWeather().compareWeatherForCities(city1 = 'Treviso',
+                                                             city2 = 'Lavagna',
                                                              aggregation = 'daily',
-                                                             start_date = '2024-06-01',
-                                                             end_date = '2024-12-31',
+                                                             start_date = None,
+                                                             end_date = None,
                                                              grid_step = 0.22)
