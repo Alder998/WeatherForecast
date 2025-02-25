@@ -63,11 +63,11 @@ class Database:
         if tablePresent:
             inputAnswer = input('You are currently overwriting an existing Table. If you want to continue with this action, please type "Y": ')
             if inputAnswer.lower() == 'y':
-                action = self.saveTableInDatabase(dataFrame, tableName, mode='append')
+                action = self.saveTableInDatabase(dataFrame, tableName, mode='replace')
             else:
                 raise Exception('A Table with the same name is already Existing!')
         else:
-            action = self.saveTableInDatabase(dataFrame, tableName, mode='append')
+            action = self.saveTableInDatabase(dataFrame, tableName, mode='replace')
         return action
 
     def appendDataToExistingTable (self,  dataFrame, existingTableName, drop_duplicates = True):
@@ -124,7 +124,7 @@ class Database:
         allTables = self.getAllTablesInDatabase()
         # Case when there are no observations in the all Table Database
         if len(allTables) > 0:
-            if allTables.str.contains(tableName)[0]:
+            if pd.Series(tableName).isin(allTables)[0]:
                 return True
             else:
                 return False
