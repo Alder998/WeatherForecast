@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 from DatabaseManager import Database as db
+from DatabaseManager import Database_dask as dk
 
 class DataPreparation:
 
@@ -14,7 +15,7 @@ class DataPreparation:
         self.predictiveVariables = predictiveVariables
         pass
 
-    def databaseModule (self):
+    def databaseModule (self, type = 'db'):
 
         env_path = r"D:\PythonProjects-Storage\WeatherForecast\App_core\app.env"
         load_dotenv(env_path)
@@ -25,7 +26,10 @@ class DataPreparation:
         port = os.getenv("port")
 
         # Instantiate the database Object
-        dataClass = db.Database(database, user, password, host, port)
+        if type == 'db':
+            dataClass = db.Database(database, user, password, host, port)
+        elif type == 'dk':
+            dataClass = dk.Database_dask(database, user, password, host, port)
 
         return dataClass
 
@@ -38,11 +42,15 @@ class DataPreparation:
 
         # Read the data
         print('Reading the data...')
-        dataset = self.databaseModule().getDataFromTable(self.tableName)
-        dataset = dataset[self.predictiveVariables.append(self.variableToPredict)]
+        dataset = self.databaseModule(type = 'dk').getDataFromTable(self.tableName)
+        # Add to the predictive variables the variable to predict (target)
+        self.predictiveVariables.append(self.variableToPredict)
+        # Now, take the columns of interest
+        dataset = dataset[self.predictiveVariables]
 
         print('Reshaping the data...')
-        newSizeData = dataset.values.reshape(dataset[dataset.columns[0]], time_steps, len(dataset.columns[0]))
+        dataset_numpy = dataset.to_dask_array(lengths=True).compute()
+        newSizeData = dataset_numpy.reshape(len(dataset[dataset.columns[0]]), time_steps, len(dataset.columns[0]))
 
         return newSizeData
 
