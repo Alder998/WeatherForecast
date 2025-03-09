@@ -1,8 +1,10 @@
 # Database Class
-
+import numpy as np
 from sqlalchemy import create_engine
 import pandas as pd
 import psycopg2
+from DatabaseManager import Database_dask as dk
+import dask.array as da
 
 class Database:
 
@@ -70,18 +72,30 @@ class Database:
             action = self.saveTableInDatabase(dataFrame, tableName, mode='replace')
         return action
 
-    def appendDataToExistingTable (self,  dataFrame, existingTableName, drop_duplicates = True):
+    def appendDataToExistingTable (self,  dataFrame, existingTableName, drop_duplicates = True, dask = False):
 
         # Before appending the table, be careful of not adding new columns, so check it
         # Load Existing
-        existingData = self.getDataFromTable(existingTableName)
+        if dask:
+            existingData = dk.Database_dask(self.database, self.user, self.password, self.host,
+                                            str(self.port)).getDataFromTable(existingTableName)
+        else:
+            existingData = self.getDataFromTable(existingTableName)
+
+        # Update index
+        dataFrame = self.updateIndex(existingData, dataFrame)
+
         # Check column Names: Check if the length of the columns is the same + all the dataFrame columns are present in
         # The existing DataFrame from SQL
         if (list(dataFrame.columns) == list(existingData.columns)):
             # Append
             newTable = self.saveTableInDatabase(dataFrame, existingTableName, mode='append')
             if drop_duplicates:
-                tableNoDuplicates = self.getDataFromTable(existingTableName).drop_duplicates()
+                if dask:
+                    tableNoDuplicates = dk.Database_dask(database = self.database, user = self.user, password = self.password,
+                                                         host = self.host, port = str(self.port)).getDataFromTable(existingTableName).drop_duplicates()
+                else:
+                    tableNoDuplicates = self.getDataFromTable(existingTableName).drop_duplicates()
                 return tableNoDuplicates
             else:
                 return newTable
@@ -89,12 +103,16 @@ class Database:
             raise Exception('The table that you are trying to append has unmatched columns than the existing one!')
 
     # Method to have Table Statistics from dataset
-    def getTableStatisticsFromQuery (self, tableName, columns = []):
+    def getTableStatisticsFromQuery (self, tableName, columns = [], dask = False):
 
         print('\n')
         print('-- TABLE: ' + tableName + ' --')
         # Get the data from query
-        data = self.getDataFromTable(tableName)
+        if dask:
+            data = dk.Database_dask(self.user, self.password, self.host, str(self.port),
+                                            self.database).getDataFromTable(tableName)
+        else:
+            data = self.getDataFromTable(tableName)
         print('Number of Rows: ' + '{:,}'.format(len(data[data.columns[0]])).replace(',', '.'))
 
         if len(columns) != 0:
@@ -130,6 +148,23 @@ class Database:
                 return False
         else:
             return False
+
+    def updateIndex (self, originalDataframe, dataFrame):
+
+        # Create the index (required for Dask and for this function not to crash)
+        # Get the latest index
+        df = originalDataframe.reset_index()
+        startIndex = df["row_number"].max().compute()
+
+        # Create the index
+        rowNumberIndex = pd.DataFrame(range(startIndex + 1,
+                        startIndex + 1 + len(dataFrame[dataFrame.columns[0]]))).set_axis(['row_number'],
+                                                                                    axis = 1)
+        # Concatenate the new index and the dataFrame
+        dataFrame = pd.concat([rowNumberIndex, dataFrame], axis = 1)
+        dataFrame = dataFrame.set_index("row_number")
+
+        return dataFrame
 
 
 

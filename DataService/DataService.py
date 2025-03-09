@@ -144,9 +144,9 @@ class DataService:
                 self.databaseModule().createTable(wForCoord, tableName)
             else:
                 print('Appending Table to the exiting one...')
-                self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True)
+                self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True, dask=True)
             # See The database Statistics
-            dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'])
+            dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'], dask = True)
             # Adding logs
             dataForLogs['date'] = pd.to_datetime(dataForLogs['date']).dt.date
             obsForDate = dataForLogs[['date', 'latitude']].groupby('date', as_index=False).count()

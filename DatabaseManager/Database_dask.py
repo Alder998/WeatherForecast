@@ -21,4 +21,5 @@ class Database_dask:
         engine_str = 'postgresql://' + self.user + ':' + self.password + '@' + self.host + ':' + str(self.port) + '/' + self.database
         # Get the database
         df = dd.read_sql_table(tableName, con=engine_str, index_col="row_number", npartitions=10)
+
         return df
