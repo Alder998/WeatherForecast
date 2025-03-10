@@ -113,7 +113,7 @@ class DataService:
 
         return grid_inside_region
 
-    def getWeatherDataForPointGrid (self, grid_step, start_date, end_date, subset = 'all'):
+    def getWeatherDataForPointGrid (self, grid_step, start_date, end_date, subset = 'all', dask=False):
 
         points = self.createPointsGrid(grid_step, plot=False)
         coordinates = pd.concat([pd.Series(points.geometry.x), pd.Series(points.geometry.y)], axis=1).set_axis(
@@ -144,9 +144,9 @@ class DataService:
                 self.databaseModule().createTable(wForCoord, tableName)
             else:
                 print('Appending Table to the exiting one...')
-                self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True, dask=True)
+                self.databaseModule().appendDataToExistingTable(wForCoord, tableName, drop_duplicates=True, dask=dask)
             # See The database Statistics
-            dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'], dask = True)
+            dataForLogs = self.databaseModule().getTableStatisticsFromQuery(tableName, ['date'], dask=dask)
             # Adding logs
             dataForLogs['date'] = pd.to_datetime(dataForLogs['date']).dt.date
             obsForDate = dataForLogs[['date', 'latitude']].groupby('date', as_index=False).count()

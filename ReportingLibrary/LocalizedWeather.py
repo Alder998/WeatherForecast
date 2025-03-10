@@ -5,12 +5,13 @@ import os
 from geopy.distance import geodesic
 import pandas as pd
 import matplotlib.pyplot as plt
+from DatabaseManager import DatabasePlugin_dask as dk
 
 class LocalizedWeather:
     def __init__(self):
         pass
 
-    def databaseModule (self):
+    def databaseModule (self, dask=False):
 
         env_path = r"D:\PythonProjects-Storage\WeatherForecast\App_core\app.env"
         load_dotenv(env_path)
@@ -20,14 +21,21 @@ class LocalizedWeather:
         host = os.getenv("host")
         port = os.getenv("port")
 
-        # Instantiate the database Object
+        # Instantiate the database Object, according whether it is Dask or Not
         dataClass = db.Database(database, user, password, host, port)
+
+        if dask:
+            dataClass = dk.Database_dask(database, user, password, host, port)
+        else:
+            dataClass = db.Database(database, user, password, host, port)
 
         return dataClass
 
     def getFilteredDatasetForCity (self, city, start_date = None, end_date = None, aggregation = 'hourly', grid_step = 0.22):
 
-        # Data Class Instantiation
+        # Data Class Instantiation (use dask only for the Weather Dataset that is massive, while for the cities one keep
+        # the old method)
+        dataClass_dk = self.databaseModule(dask = True)
         dataClass = self.databaseModule()
 
         # Get the cities data for the specific city
@@ -36,7 +44,8 @@ class LocalizedWeather:
         if len(selectedCity['latitude']) == 0:
             raise Exception ("The city: " + city + " has NOT been found in the Database!")
 
-        weatherData = dataClass.getDataFromTable('WeatherForRegion_' + str(grid_step))
+        # Probably dask is required here
+        weatherData = dataClass_dk.getDataFromTable('WeatherForRegion_' + str(grid_step))
 
         # Find the nearest Points with the greediest method possible
         # First, isolate the 716 grid points
@@ -48,10 +57,10 @@ class LocalizedWeather:
             lambda row: geodesic((row['latitude'], row['longitude']), target).kilometers, axis=1)
 
         # Log to see how far a weather Data Point has been found from the selected city
-        print('Weather data point found: ' + str(round(uniqueCoords['Distance_km'].min(), 2)) + ' km from ' + city)
+        print('Weather data point found: ' + str(round(uniqueCoords['Distance_km'].min().compute(), 2)) + ' km from ' + city)
 
         minDistanceCoord = uniqueCoords[['latitude', 'longitude']][
-            uniqueCoords['Distance_km'] == uniqueCoords['Distance_km'].min()].reset_index(drop=True)
+            uniqueCoords['Distance_km'] == uniqueCoords['Distance_km'].min()].reset_index(drop=True).compute()
 
         filteredWeatherData = weatherData[(weatherData['latitude'] == minDistanceCoord['latitude'].values[0]) &
                                           (weatherData['longitude'] == minDistanceCoord['longitude'].values[0])].reset_index(drop=True)

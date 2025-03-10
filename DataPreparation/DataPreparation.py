@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 from DatabaseManager import Database as db
-from DatabaseManager import Database_dask as dk
+from DatabaseManager import DatabasePlugin_dask as dk
 
 class DataPreparation:
 

@@ -3,7 +3,7 @@ import numpy as np
 from sqlalchemy import create_engine
 import pandas as pd
 import psycopg2
-from DatabaseManager import Database_dask as dk
+from DatabaseManager import DatabasePlugin_dask as dk
 import dask.array as da
 
 class Database:
@@ -109,8 +109,8 @@ class Database:
         print('-- TABLE: ' + tableName + ' --')
         # Get the data from query
         if dask:
-            data = dk.Database_dask(self.user, self.password, self.host, str(self.port),
-                                            self.database).getDataFromTable(tableName)
+            data = dk.Database_dask(database = self.database, user = self.user, password = self.password,
+                                    host = self.host, port = str(self.port)).getDataFromTable(tableName)
         else:
             data = self.getDataFromTable(tableName)
         print('Number of Rows: ' + '{:,}'.format(len(data[data.columns[0]])).replace(',', '.'))

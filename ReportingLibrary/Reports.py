@@ -10,6 +10,7 @@ import LocalizedWeather as locl
 comparison = locl.LocalizedWeather().compareWeatherForCities(city1 = 'Milano',
                                                              city2 = 'Lavagna',
                                                              aggregation = 'daily',
-                                                             start_date = None,
-                                                             end_date = None,
-                                                             grid_step = 0.22)
+                                                             start_date="2024-08-01",
+                                                             end_date = "2024-12-01",
+                                                             grid_step = 0.22
+                                                             )
