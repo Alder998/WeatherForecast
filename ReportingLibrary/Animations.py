@@ -40,7 +40,10 @@ class Animations:
 
         # Load Data from Database
         print('Loading data...')
-        data = self.databaseModule().getDataFromTable('WeatherForRegion_' + str(grid_step))
+        # Handle it with query
+        data = self.databaseModule().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
+                                             '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
+                                             end_date + "'")
         data['date'] = pd.to_datetime(data['date'])
         # Filter for date if necessary
         if (start_date != None) & (end_date != None):

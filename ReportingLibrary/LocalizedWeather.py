@@ -44,8 +44,10 @@ class LocalizedWeather:
         if len(selectedCity['latitude']) == 0:
             raise Exception ("The city: " + city + " has NOT been found in the Database!")
 
-        # Probably dask is required here
-        weatherData = dataClass_dk.getDataFromTable('WeatherForRegion_' + str(grid_step))
+        # Only narrow date filters are admitted
+        weatherData = dataClass.executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
+                                             '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
+                                             end_date + "'")
 
         # Find the nearest Points with the greediest method possible
         # First, isolate the 716 grid points
@@ -57,10 +59,10 @@ class LocalizedWeather:
             lambda row: geodesic((row['latitude'], row['longitude']), target).kilometers, axis=1)
 
         # Log to see how far a weather Data Point has been found from the selected city
-        print('Weather data point found: ' + str(round(uniqueCoords['Distance_km'].min().compute(), 2)) + ' km from ' + city)
+        print('Weather data point found: ' + str(round(uniqueCoords['Distance_km'].min(), 2)) + ' km from ' + city)
 
         minDistanceCoord = uniqueCoords[['latitude', 'longitude']][
-            uniqueCoords['Distance_km'] == uniqueCoords['Distance_km'].min()].reset_index(drop=True).compute()
+            uniqueCoords['Distance_km'] == uniqueCoords['Distance_km'].min()].reset_index(drop=True)
 
         filteredWeatherData = weatherData[(weatherData['latitude'] == minDistanceCoord['latitude'].values[0]) &
                                           (weatherData['longitude'] == minDistanceCoord['longitude'].values[0])].reset_index(drop=True)

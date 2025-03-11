@@ -16,6 +16,15 @@ class Database:
         self.port = port
         pass
 
+    # Very basic method to execute a query
+    def executeQuery (self, query):
+        engine = create_engine('postgresql://' + self.user + ':' + self.password + '@' +
+                               self.host + ':' + str(self.port) + '/' + self.database)
+        query = query
+        dataFromQuery = pd.read_sql(query, engine)
+
+        return dataFromQuery
+
     # Get table Data from a Database Connection
     def getDataFromTable (self, tableName):
 
@@ -83,7 +92,7 @@ class Database:
             existingData = self.getDataFromTable(existingTableName)
 
         # Update index
-        dataFrame = self.updateIndex(existingData, dataFrame)
+        dataFrame = self.updateIndex(existingTableName, dataFrame)
 
         # Check column Names: Check if the length of the columns is the same + all the dataFrame columns are present in
         # The existing DataFrame from SQL
@@ -149,12 +158,11 @@ class Database:
         else:
             return False
 
-    def updateIndex (self, originalDataframe, dataFrame):
+    def updateIndex (self, originalTableName, dataFrame):
 
         # Create the index (required for Dask and for this function not to crash)
-        # Get the latest index
-        df = originalDataframe.reset_index()
-        startIndex = df["row_number"].max().compute()
+        # Get the latest index directly from query
+        startIndex = self.executeQuery('SELECT MAX(row_number) FROM public."'+ originalTableName + '"')['max'][0]
 
         # Create the index
         rowNumberIndex = pd.DataFrame(range(startIndex + 1,
