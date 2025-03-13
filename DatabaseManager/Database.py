@@ -112,24 +112,21 @@ class Database:
             raise Exception('The table that you are trying to append has unmatched columns than the existing one!')
 
     # Method to have Table Statistics from dataset
-    def getTableStatisticsFromQuery (self, tableName, columns = [], dask = False):
+    def getTableStatisticsFromQuery (self, tableName, columns = []):
 
         print('\n')
         print('-- TABLE: ' + tableName + ' --')
         # Get the data from query
-        if dask:
-            data = dk.Database_dask(database = self.database, user = self.user, password = self.password,
-                                    host = self.host, port = str(self.port)).getDataFromTable(tableName)
-        else:
-            data = self.getDataFromTable(tableName)
-        print('Number of Rows: ' + '{:,}'.format(len(data[data.columns[0]])).replace(',', '.'))
+
+        print('Number of Rows: ' + '{:,}'.format(self.executeQuery('SELECT MAX(row_number) FROM public."' +
+                                                tableName + '"')['max'][0]).replace(',', '.'))
 
         if len(columns) != 0:
             for col in columns:
                 print('Number of Unique Values for column: ' + col + ':' +
-                      ' {:,}'.format(len(data[col].unique())).replace(',', '.'))
+                      ' {:,}'.format(self.executeQuery('SELECT COUNT(DISTINCT '+ col +
+                            ') FROM public."'+ tableName + '"')['count'][0]).replace(',', '.'))
         print('\n')
-        return data
 
     def excludeValuesAlreadyPresentFromTable (self, dataFrame, tableName, keyColumn):
 
