@@ -1,6 +1,5 @@
 # Data Preparation Class (mainly functional)
 import os
-
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
@@ -9,13 +8,10 @@ from DatabaseManager import DatabasePlugin_dask as dk
 
 class DataPreparation:
 
-    def __init__(self, tableName, variableToPredict, predictiveVariables):
-        self.tableName = tableName
-        self.variableToPredict = variableToPredict
-        self.predictiveVariables = predictiveVariables
+    def __init__(self):
         pass
 
-    def databaseModule (self, type = 'db'):
+    def dataClass (self, type ='db'):
 
         env_path = r"D:\PythonProjects-Storage\WeatherForecast\App_core\app.env"
         load_dotenv(env_path)
@@ -33,7 +29,16 @@ class DataPreparation:
 
         return dataClass
 
-    def adaptDataForModel (self, time_steps):
+    def getDataSubset (self, grid_step, start_date, end_date):
+
+        print('Getting the data...')
+        # Here we are implementing a data getter framework to use filters directly in the query
+        dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
+                                             '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
+                                             end_date + "'")
+        return dataFromQuery.drop(columns=['row_number'])
+
+    def adaptDataForModel (self, dataFrame, predictiveVariables, variableToPredict):
 
         # self.data is in DataFrame format, we need to transform it into array. The desired format is a three dimensional
         # Array, with two predictors (latitude, longitude) + the variable of interest, while the third dimension is given
@@ -41,21 +46,21 @@ class DataPreparation:
         # where t is the time stamps
 
         # Read the data
-        print('Reading the data...')
-        dataset = self.databaseModule(type = 'dk').getDataFromTable(self.tableName)
         # Add to the predictive variables the variable to predict (target)
-        self.predictiveVariables.append(self.variableToPredict)
+        predictiveVariables.append(variableToPredict)
         # Now, take the columns of interest
-        dataset = dataset[self.predictiveVariables]
+        dataset = dataFrame[predictiveVariables]
 
+        # Reshape the data
         print('Reshaping the data...')
-        dataset_numpy = dataset.to_dask_array(lengths=True).compute()
-        newSizeData = dataset_numpy.reshape(len(dataset[dataset.columns[0]]), time_steps, len(dataset.columns[0]))
+        newSizeData = [dataset.to_numpy() for _, group in dataset.groupby('date')]
 
         return newSizeData
 
     def trainTestSplit (self):
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
+
+
 
         return 0

@@ -1,11 +1,13 @@
 import DataPreparation as dt
 
-# get the data from database
-
-grid_step = 0.22
-
-data = dt.DataPreparation(tableName = 'WeatherForRegion_'+ str(grid_step),
-                   predictiveVariables = ['latitude', 'longitude'],
-                   variableToPredict = 'precipitation').adaptDataForModel(time_steps = 10)
-
-print(data)
+# Instantiate the class
+classModule = dt.DataPreparation()
+# get the data creating a data subset (2-3 months)
+data = classModule.getDataSubset(grid_step=0.22,
+                                 start_date='2025-01-01',
+                                 end_date='2025-01-05')
+# Now, reshape
+dataForModel = classModule.adaptDataForModel (dataFrame=data,
+                                              predictiveVariables=['date', 'latitude', 'longitude'],
+                                              variableToPredict='precipitation')
+print(dataForModel)
