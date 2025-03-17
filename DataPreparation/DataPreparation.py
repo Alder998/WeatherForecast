@@ -29,7 +29,7 @@ class DataPreparation:
 
         return dataClass
 
-    def getDataSubset (self, grid_step, start_date, end_date):
+    def getDataWindow (self, grid_step, start_date, end_date):
 
         print('Getting the data...')
         # Here we are implementing a data getter framework to use filters directly in the query
@@ -57,10 +57,10 @@ class DataPreparation:
 
         return newSizeData
 
-    def trainTestSplit (self):
+    def timeAndSpaceSplit (self, arrayList):
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
-
+        # Time Split (train is the first n observations, test is the remaining m observations)
 
 
         return 0
