@@ -8,7 +8,8 @@ from DatabaseManager import DatabasePlugin_dask as dk
 
 class DataPreparation:
 
-    def __init__(self):
+    def __init__(self, grid_step):
+        self.grid_step = grid_step
         pass
 
     def dataClass (self, type ='db'):
@@ -57,10 +58,32 @@ class DataPreparation:
 
         return newSizeData
 
-    def timeAndSpaceSplit (self, arrayList):
+    def timeAndSpaceSplit (self, dataset, test_size=0.30):
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
-        # Time Split (train is the first n observations, test is the remaining m observations)
+        # First, apply the Geo split (test: try to take 1 each 3 or 4 observations)
+        # Take data from Time Grid (gridPoints_0.22)
+        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step))
 
+        pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
+                                    int(len(gridPoints[gridPoints.columns[0]]) * test_size))
+        # Make all the values inside the array integers
+        pointDivision = [int(point) for point in pointDivision]
+        # Filter for data Points inside and outside the Grid
+        grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
+        grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
 
-        return 0
+        # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
+        trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
+        testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
+
+        # Apply the train and test grid to the geo data, accordingly
+        trainSet = trainSet[(trainSet['latitude'].isin(grid_train['lat'])) &
+                            (trainSet['longitude'].isin(grid_train['lng']))]
+        testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
+                            (testSet['longitude'].isin(grid_test['lng']))]
+        print(trainSet)
+        print(testSet)
+
+        # Each one of the sets has a snapshot of the geographic area according to the time frame
+        return trainSet, testSet

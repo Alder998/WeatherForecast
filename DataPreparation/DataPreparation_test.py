@@ -1,7 +1,7 @@
 import DataPreparation as dt
 
 # Instantiate the class
-classModule = dt.DataPreparation()
+classModule = dt.DataPreparation(grid_step=0.22)
 # get the data creating a data subset (2-3 months)
 data = classModule.getDataWindow(grid_step=0.22,
                                  start_date='2025-01-01',
@@ -11,6 +11,6 @@ dataForModel = classModule.adaptDataForModel(dataFrame=data,
                                               predictiveVariables=['date', 'latitude', 'longitude'],
                                               variableToPredict='precipitation')
 # Train-test split
-t = classModule.timeAndSpaceSplit(dataForModel)
+t = classModule.timeAndSpaceSplit(data, test_size=0.20)
 
 #print(dataForModel)
