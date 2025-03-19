@@ -30,16 +30,16 @@ class DataPreparation:
 
         return dataClass
 
-    def getDataWindow (self, grid_step, start_date, end_date):
+    def getDataWindow (self, start_date, end_date):
 
         print('Getting the data...')
         # Here we are implementing a data getter framework to use filters directly in the query
-        dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
+        dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
                                              '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
                                              end_date + "'")
         return dataFromQuery.drop(columns=['row_number'])
 
-    def adaptDataForModel (self, dataFrame, predictiveVariables, variableToPredict):
+    def adaptDataForModel (self, dataFrame, predictiveVariables):
 
         # self.data is in DataFrame format, we need to transform it into array. The desired format is a three dimensional
         # Array, with two predictors (latitude, longitude) + the variable of interest, while the third dimension is given
@@ -48,7 +48,7 @@ class DataPreparation:
 
         # Read the data
         # Add to the predictive variables the variable to predict (target)
-        predictiveVariables.append(variableToPredict)
+        # predictiveVariables.append(variableToPredict)
         # Now, take the columns of interest
         dataset = dataFrame[predictiveVariables]
 
@@ -58,7 +58,7 @@ class DataPreparation:
 
         return newSizeData
 
-    def timeAndSpaceSplit (self, dataset, test_size=0.30):
+    def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict):
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
         # First, apply the Geo split (test: try to take 1 each 3 or 4 observations)
@@ -82,8 +82,12 @@ class DataPreparation:
                             (trainSet['longitude'].isin(grid_train['lng']))]
         testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
                             (testSet['longitude'].isin(grid_test['lng']))]
-        print(trainSet)
-        print(testSet)
+
+        # Now, make the values as array
+        train_set = self.adaptDataForModel(trainSet, predictiveVariables)
+        test_set = self.adaptDataForModel(testSet, predictiveVariables)
+        train_labels = np.array(trainSet[variableToPredict])
+        test_labels = np.array(testSet[variableToPredict])
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
-        return trainSet, testSet
+        return train_set, test_set, train_labels, test_labels
