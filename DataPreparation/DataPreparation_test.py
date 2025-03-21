@@ -11,5 +11,7 @@ train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(d
                                                     predictiveVariables=['date', 'latitude', 'longitude'],
                                                     variableToPredict='precipitation')
 
-print('Train Set Shape:', train_labels.shape)
-print('Test Labels Shape:', test_labels.shape)
+#print('Train Set Shape:', train_labels.shape)
+#print('Test Labels Shape:', test_labels.shape)
+
+print('Train set:', len(train_set))

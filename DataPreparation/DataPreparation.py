@@ -83,11 +83,25 @@ class DataPreparation:
         testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
                             (testSet['longitude'].isin(grid_test['lng']))]
 
+        # REVISE: make the data numeric
+        trainSet['date'] = pd.Series(trainSet['date'].index).astype(int)
+        testSet['date'] = pd.Series(testSet['date'].index).astype(int)
+
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables)
         test_set = self.adaptDataForModel(testSet, predictiveVariables)
-        train_labels = np.array(trainSet[variableToPredict])
-        test_labels = np.array(testSet[variableToPredict])
+        train_labels = self.adaptDataForModel(trainSet, ['date', variableToPredict])
+        test_labels = self.adaptDataForModel(testSet, ['date', variableToPredict])
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
+        return train_set, test_set, train_labels, test_labels
+
+    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict):
+
+        data = self.getDataWindow(start_date=start_date, end_date=end_date)
+        # Train-test split
+        train_set, test_set, train_labels, test_labels = self.timeAndSpaceSplit(dataset=data,
+                                                                test_size=test_size,
+                                                                predictiveVariables=predictiveVariables,
+                                                                variableToPredict=variableToPredict)
         return train_set, test_set, train_labels, test_labels
