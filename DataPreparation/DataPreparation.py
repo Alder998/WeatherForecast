@@ -84,8 +84,14 @@ class DataPreparation:
                             (testSet['longitude'].isin(grid_test['lng']))]
 
         # REVISE: make the data numeric
-        trainSet['date'] = pd.Series(trainSet['date'].index).astype(int)
-        testSet['date'] = pd.Series(testSet['date'].index).astype(int)
+        #trainSet['date'] = pd.Series(trainSet['date'].index).astype(int)
+        #testSet['date'] = pd.Series(testSet['date'].index).astype(int)
+
+        trainSet['date'] = pd.to_datetime(trainSet['date']).astype('int64') // 10 ** 9
+        trainSet['date'] = trainSet['date'].astype('float32')
+
+        testSet['date'] = pd.to_datetime(testSet['date']).astype('int64') // 10 ** 9
+        testSet['date'] = testSet['date'].astype('float32')
 
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables)
