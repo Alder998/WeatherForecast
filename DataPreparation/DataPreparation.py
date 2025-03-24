@@ -52,9 +52,14 @@ class DataPreparation:
         # Now, take the columns of interest
         dataset = dataFrame[predictiveVariables]
 
+        # REVISE: make the data numeric, reduce to float32 to decrease the memory impact
+        datasetFinal = dataset.copy()
+        datasetFinal['date'] = pd.to_datetime(datasetFinal['date']).astype('int64') // 10 ** 9
+        datasetFinal['date'] = datasetFinal['date'].astype('float32')
+
         # Reshape the data
         print('Reshaping the data...')
-        newSizeData = [dataset.to_numpy() for _, group in dataset.groupby('date')]
+        newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(['date'])]
 
         return newSizeData
 
@@ -73,6 +78,11 @@ class DataPreparation:
         grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
 
+        # Remove duplicates from original Dataset, and sort from the least recent to the most recent
+        dataset = dataset.drop_duplicates().reset_index(drop=True)
+        dataset['date'] = pd.to_datetime(dataset['date'])
+        dataset = dataset.sort_values(by='date', ascending=True).reset_index(drop=True)
+
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
         testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
@@ -83,24 +93,19 @@ class DataPreparation:
         testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
                             (testSet['longitude'].isin(grid_test['lng']))]
 
-        # REVISE: make the data numeric
-        #trainSet['date'] = pd.Series(trainSet['date'].index).astype(int)
-        #testSet['date'] = pd.Series(testSet['date'].index).astype(int)
-
-        trainSet['date'] = pd.to_datetime(trainSet['date']).astype('int64') // 10 ** 9
-        trainSet['date'] = trainSet['date'].astype('float32')
-
-        testSet['date'] = pd.to_datetime(testSet['date']).astype('int64') // 10 ** 9
-        testSet['date'] = testSet['date'].astype('float32')
-
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables)
         test_set = self.adaptDataForModel(testSet, predictiveVariables)
-        train_labels = self.adaptDataForModel(trainSet, ['date', variableToPredict])
-        test_labels = self.adaptDataForModel(testSet, ['date', variableToPredict])
+        if len(predictiveVariables) != 1:
+            train_labels = self.adaptDataForModel(trainSet, ['date', variableToPredict])
+            test_labels = self.adaptDataForModel(testSet, ['date', variableToPredict])
+        else:
+            train_labels = self.adaptDataForModel(trainSet, ['date'])
+            test_labels = self.adaptDataForModel(testSet, ['date'])
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
-        return train_set, test_set, train_labels, test_labels
+        # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
+        return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict):
 
@@ -111,3 +116,12 @@ class DataPreparation:
                                                                 predictiveVariables=predictiveVariables,
                                                                 variableToPredict=variableToPredict)
         return train_set, test_set, train_labels, test_labels
+
+    def getSetSize (self, set):
+
+        tcheck = []
+        for value in set:
+            if value.shape not in tcheck:
+                tcheck.append(value.shape)
+
+        return tcheck

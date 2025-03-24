@@ -1,4 +1,5 @@
 import DataPreparation as dt
+import numpy as np
 
 # Instantiate the class
 classModule = dt.DataPreparation(grid_step=0.22)
@@ -11,7 +12,11 @@ train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(d
                                                     predictiveVariables=['date', 'latitude', 'longitude'],
                                                     variableToPredict='precipitation')
 
-#print('Train Set Shape:', train_labels.shape)
-#print('Test Labels Shape:', test_labels.shape)
+for value in test_set:
+    print(value.shape)
 
-print('Train set:', len(train_set))
+# Show shapes
+print('Train Set Shapes:', classModule.getSetSize(train_set), '- Time Steps length:', len(train_set))
+print('Train Labels Shapes:', classModule.getSetSize(train_labels), '- Time Steps length:', len(train_labels))
+print('Test Set Shapes:', classModule.getSetSize(test_set), '- Time Steps length:', len(test_set))
+print('Test Labels Shapes:', classModule.getSetSize(test_labels), '- Time Steps length:', len(test_labels))

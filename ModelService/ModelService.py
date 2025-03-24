@@ -1,5 +1,7 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
 import numpy as np
+from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape
+
 import DataPreparation as dt
 import tensorflow as tf
 
@@ -12,7 +14,7 @@ class ModelService:
         self.test_labels = test_labels
         pass
 
-    def NNModel (self, modelStructure, trainingEpochs):
+    def NNModel (self, modelStructure, trainingEpochs, return_seq_last_rec_layer = False):
 
         # Adapt data for Model
         train_set = np.stack(self.train_set, axis=0)
@@ -26,49 +28,59 @@ class ModelService:
         test_set = np.array(test_set, dtype=np.float32)
         test_labels = np.array(test_labels, dtype=np.float32)
 
-        print(train_set.dtype)
-        print(train_labels.dtype)
-
         print(train_set.shape)
         print(train_labels.shape)
 
         # Instatiate The Tensorflow Object Model
         model = tf.keras.Sequential()
 
+        # Start with the CNN, to understand the space dependencies
+        if len(modelStructure['Conv']) > 0:
+            for c in range(len(modelStructure['Conv'])):
+                units = modelStructure['Conv'][c]
+                model.add(Conv1D(filters=units, kernel_size=3, activation='relu', padding='same'))
+                model.add(MaxPooling1D(pool_size=2, padding='same'))
+
+        # Proceed with the Recurrent Part with LSTM layers
         if len(modelStructure['LSTM']) > 0:
             # Expand dimensions to add timestamp
-            #model.add(tf.keras.layers.Reshape((1, train_set.shape[1]), input_shape=(train_set.shape[1],)))
             for l in range(len(modelStructure['LSTM'])):
                 units = modelStructure['LSTM'][l]
                 if l == 0:
                     # Input_shape required on the first layer
                     layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True,
-                                                 input_shape=(None, train_set.shape[1]))
+                                                 input_shape=(train_set.shape[0], train_set.shape[2]))
                 else:
-                    # For others, no issues
-                    # Remove the timestamp param if the layer is the last one of the LSM Structure
-                    if l == len(modelStructure['LSTM']) - 1:
-                        layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=False)
+                    if return_seq_last_rec_layer:
+                        # For others, no issues
+                        # Remove the timestamp param if the layer is the last one of the LSM Structure
+                        if l == len(modelStructure['LSTM']) - 1:
+                            layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=False)
+                        else:
+                            layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
                     else:
                         layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
+                # Add layer to the model
                 model.add(layer)
-            # then, add the FF layer
+
+        # then, add the FF layer
         for l in range(len(modelStructure['FF'])):
             unitsFF = modelStructure['FF'][l]
             layerFF = tf.keras.layers.Dense(unitsFF, activation='relu')
             model.add(layerFF)
-        model.add(tf.keras.layers.Dense(2))
+
+        model.add(tf.keras.layers.Dense(1, activation='linear'))
 
         # Compile
         model.compile(optimizer='adam',
-                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                      metrics=['accuracy'])
+                      loss=tf.keras.losses.MeanSquaredError(),
+                      metrics=['mse'])
         # Now, Train the Model
         model.fit(train_set, train_labels, epochs=trainingEpochs)
 
         # Evaluate on Test set
         test_loss, test_acc = model.evaluate(test_set, test_labels, verbose=2)
-        print('Test accuracy:', test_acc)
+        print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
 
 
 
