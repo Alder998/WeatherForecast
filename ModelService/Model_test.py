@@ -13,8 +13,8 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
 # Train the Model
 # Model Structure
 structure = {'FF': [500, 500, 500, 500, 500],
-             'LSTM': [50, 50, 50, 50],
-             'Conv': []}
+             'LSTM': [64, 64, 64, 64],
+             'Conv': [64, 64, 64, 64]}
 model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                            trainingEpochs=100,
                                                                            return_seq_last_rec_layer=False)

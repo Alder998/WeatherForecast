@@ -1,6 +1,6 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
 import numpy as np
-from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape
+from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape, UpSampling1D
 
 import DataPreparation as dt
 import tensorflow as tf
@@ -40,6 +40,8 @@ class ModelService:
                 units = modelStructure['Conv'][c]
                 model.add(Conv1D(filters=units, kernel_size=3, activation='relu', padding='same'))
                 model.add(MaxPooling1D(pool_size=2, padding='same'))
+                # Upsampling to preserve the dimensionality
+                model.add(UpSampling1D(size=2))
 
         # Proceed with the Recurrent Part with LSTM layers
         if len(modelStructure['LSTM']) > 0:
