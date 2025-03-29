@@ -63,11 +63,15 @@ class DataPreparation:
 
         return newSizeData
 
-    def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict):
+    def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True):
+
+        # check that space OR time split has been filled as True
+        if (space_split == False) & (time_split == False):
+            raise Exception ('Error! At least one split must be filled!')
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
         # First, apply the Geo split (test: try to take 1 each 3 or 4 observations)
-        # Take data from Time Grid (gridPoints_0.22)
+        # Take data from Time Grid (gridPoints_ + selected grid)
         gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step))
 
         pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
@@ -84,14 +88,16 @@ class DataPreparation:
         dataset = dataset.sort_values(by='date', ascending=True).reset_index(drop=True)
 
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
-        trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
-        testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
+        if time_split:
+            trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
+            testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
 
         # Apply the train and test grid to the geo data, accordingly
-        trainSet = trainSet[(trainSet['latitude'].isin(grid_train['lat'])) &
-                            (trainSet['longitude'].isin(grid_train['lng']))]
-        testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
-                            (testSet['longitude'].isin(grid_test['lng']))]
+        if space_split:
+            trainSet = trainSet[(trainSet['latitude'].isin(grid_train['lat'])) &
+                                (trainSet['longitude'].isin(grid_train['lng']))]
+            testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
+                                (testSet['longitude'].isin(grid_test['lng']))]
 
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables)
@@ -107,14 +113,16 @@ class DataPreparation:
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
         return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
-    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict):
+    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
         # Train-test split
         train_set, test_set, train_labels, test_labels = self.timeAndSpaceSplit(dataset=data,
                                                                 test_size=test_size,
                                                                 predictiveVariables=predictiveVariables,
-                                                                variableToPredict=variableToPredict)
+                                                                variableToPredict=variableToPredict,
+                                                                space_split=space_split,
+                                                                time_split=time_split)
         return train_set, test_set, train_labels, test_labels
 
     def getSetSize (self, set):

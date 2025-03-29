@@ -9,7 +9,9 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    end_date='2025-01-15',
                                                    test_size=0.20,
                                                    predictiveVariables=['date', 'latitude', 'longitude'],
-                                                   variableToPredict='temperature')
+                                                   variableToPredict='temperature',
+                                                   time_split=True,
+                                                   space_split=False)
 # Train the Model
 # Model Structure
 structure = {'FF': [500, 500, 500, 500, 500],

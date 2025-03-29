@@ -10,7 +10,9 @@ data = classModule.getDataWindow(start_date='2025-01-01',
 train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(dataset=data,
                                                     test_size=0.20,
                                                     predictiveVariables=['date', 'latitude', 'longitude'],
-                                                    variableToPredict='precipitation')
+                                                    variableToPredict='precipitation',
+                                                    time_split=True,
+                                                    space_split=True)
 
 for value in test_set:
     print(value.shape)

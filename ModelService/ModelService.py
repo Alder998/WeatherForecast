@@ -28,8 +28,8 @@ class ModelService:
         test_set = np.array(test_set, dtype=np.float32)
         test_labels = np.array(test_labels, dtype=np.float32)
 
-        print(train_set.shape)
-        print(train_labels.shape)
+        print('Train Set shape:', train_set.shape)
+        print('Test Set shape:', train_labels.shape)
 
         # Instatiate The Tensorflow Object Model
         model = tf.keras.Sequential()
