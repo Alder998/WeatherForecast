@@ -1,7 +1,8 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
+
 import numpy as np
 from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape, UpSampling1D
-
+from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
 
@@ -14,13 +15,38 @@ class ModelService:
         self.test_labels = test_labels
         pass
 
-    def NNModel (self, modelStructure, trainingEpochs, return_seq_last_rec_layer = False):
+    # Utils-like function to standardize the data
+    def standardizeData(self, set):
+
+        # Initialize the scaler from scikit-learn
+        scaler = StandardScaler()
+
+        # Reshape that is necessary to process the features separately
+        num_samples, num_obs, num_features = set.shape
+        X_reshaped = set.reshape(-1, num_features)
+
+        # Normalize the features
+        X_scaled = scaler.fit_transform(X_reshaped)
+
+        # Put the array in the old shape
+        X_scaled = X_scaled.reshape(num_samples, num_obs, num_features)
+
+        return X_scaled
+
+    def NNModel (self, modelStructure, trainingEpochs, save_name, return_seq_last_rec_layer = False, standardize=True):
 
         # Adapt data for Model
         train_set = np.stack(self.train_set, axis=0)
         test_set = np.stack(self.test_set, axis=0)
         train_labels = np.stack(self.train_labels, axis=0)
         test_labels = np.stack(self.test_labels, axis=0)
+
+        if standardize:
+            # Standardize the data
+            train_set = self.standardizeData(train_set)
+            train_labels = self.standardizeData(train_labels)
+            test_set = self.standardizeData(test_set)
+            test_labels = self.standardizeData(test_labels)
 
         # Make the array numeric
         train_set = np.array(train_set, dtype=np.float32)
@@ -83,6 +109,13 @@ class ModelService:
         # Evaluate on Test set
         test_loss, test_acc = model.evaluate(test_set, test_labels, verbose=2)
         print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
+
+        # Save the model il .h5 format
+        model.save(save_name + '.h5')
+        print('Model Saved Correctly!')
+
+        return model
+
 
 
 
