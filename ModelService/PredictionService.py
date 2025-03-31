@@ -1,0 +1,1 @@
+# Class that allow to make prediction on future data and visualize them so to understand if the model has scored well

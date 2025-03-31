@@ -49,17 +49,19 @@ class DataPreparation:
         # Read the data
         # Add to the predictive variables the variable to predict (target)
         # predictiveVariables.append(variableToPredict)
-        # Now, take the columns of interest
-        dataset = dataFrame[predictiveVariables]
 
-        # REVISE: make the data numeric, reduce to float32 to decrease the memory impact
-        datasetFinal = dataset.copy()
-        datasetFinal['date'] = pd.to_datetime(datasetFinal['date']).astype('int64') // 10 ** 9
-        datasetFinal['date'] = datasetFinal['date'].astype('float32')
+        # Take the three main date factors, that are year, month, day of month, hour of day
+        datasetFinal = dataFrame.copy()
+        datasetFinal['year'] = pd.to_datetime(datasetFinal['date']).dt.year
+        datasetFinal['month'] = pd.to_datetime(datasetFinal['date']).dt.month
+        datasetFinal['day'] = pd.to_datetime(datasetFinal['date']).dt.day
+        datasetFinal['hour'] = pd.to_datetime(datasetFinal['date']).dt.hour
+        # Isolate the columns of interest
+        datasetFinal = datasetFinal[predictiveVariables]
 
         # Reshape the data
         print('Reshaping the data...')
-        newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(['date'])]
+        newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(['year', 'month', 'day', 'hour'])]
 
         return newSizeData
 
@@ -103,11 +105,11 @@ class DataPreparation:
         train_set = self.adaptDataForModel(trainSet, predictiveVariables)
         test_set = self.adaptDataForModel(testSet, predictiveVariables)
         if len(predictiveVariables) != 1:
-            train_labels = self.adaptDataForModel(trainSet, ['date', variableToPredict])
-            test_labels = self.adaptDataForModel(testSet, ['date', variableToPredict])
+            train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict])
+            test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict])
         else:
-            train_labels = self.adaptDataForModel(trainSet, ['date'])
-            test_labels = self.adaptDataForModel(testSet, ['date'])
+            train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour'])
+            test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour'])
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
