@@ -5,7 +5,7 @@ import numpy as np
 classModule = dt.DataPreparation(grid_step=0.22)
 # get the data creating a data subset (2-3 months)
 data = classModule.getDataWindow(start_date='2025-01-01',
-                                 end_date='2025-01-10')
+                                 end_date='2025-03-30')
 # Train-test split
 train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(dataset=data,
                                                     test_size=0.20,
@@ -14,7 +14,7 @@ train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(d
                                                     time_split=True,
                                                     space_split=True)
 
-for value in test_set:
+for value in train_set:
     print(value.shape)
 
 # Show shapes

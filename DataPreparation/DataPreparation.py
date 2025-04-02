@@ -85,7 +85,7 @@ class DataPreparation:
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
 
         # Remove duplicates from original Dataset, and sort from the least recent to the most recent
-        dataset = dataset.drop_duplicates().reset_index(drop=True)
+        dataset = dataset.drop_duplicates(subset=['date', 'latitude', 'longitude']).reset_index(drop=True)
         dataset['date'] = pd.to_datetime(dataset['date'])
         dataset = dataset.sort_values(by='date', ascending=True).reset_index(drop=True)
 
