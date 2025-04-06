@@ -14,9 +14,6 @@ train_set, test_set, train_labels, test_labels = classModule.timeAndSpaceSplit(d
                                                     time_split=True,
                                                     space_split=True)
 
-for value in train_set:
-    print(value.shape)
-
 # Show shapes
 print('Train Set Shapes:', classModule.getSetSize(train_set), '- Time Steps length:', len(train_set))
 print('Train Labels Shapes:', classModule.getSetSize(train_labels), '- Time Steps length:', len(train_labels))

@@ -5,6 +5,7 @@ from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Res
 from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
+import joblib
 
 class ModelService:
 
@@ -16,7 +17,7 @@ class ModelService:
         pass
 
     # Utils-like function to standardize the data
-    def standardizeData(self, set):
+    def standardizeData(self, set, saveScaler=False):
 
         # Initialize the scaler from scikit-learn
         scaler = StandardScaler()
@@ -31,6 +32,9 @@ class ModelService:
         # Put the array in the old shape
         X_scaled = X_scaled.reshape(num_samples, num_obs, num_features)
 
+        if saveScaler:
+            joblib.dump(scaler, 'scaler_labels.pkl')
+
         return X_scaled
 
     def NNModel (self, modelStructure, trainingEpochs, save_name, return_seq_last_rec_layer = False, standardize=True):
@@ -44,9 +48,9 @@ class ModelService:
         if standardize:
             # Standardize the data
             train_set = self.standardizeData(train_set)
-            train_labels = self.standardizeData(train_labels)
+            train_labels = self.standardizeData(train_labels, saveScaler=True)
             test_set = self.standardizeData(test_set)
-            test_labels = self.standardizeData(test_labels)
+            test_labels = self.standardizeData(test_labels, saveScaler=True)
 
         # Make the array numeric
         train_set = np.array(train_set, dtype=np.float32)
@@ -55,7 +59,7 @@ class ModelService:
         test_labels = np.array(test_labels, dtype=np.float32)
 
         print('Train Set shape:', train_set.shape)
-        print('Test Set shape:', train_labels.shape)
+        print('Train Labels shape:', train_labels.shape)
 
         # Instatiate The Tensorflow Object Model
         model = tf.keras.Sequential()

@@ -99,9 +99,9 @@ class PredictionService:
         model = tf.keras.models.load_model(self.model + '.h5')
 
         # Load the data creating a time-ahead set
-        predictionSet = self.createPredictionSet()
+        predictionSetRaw = self.createPredictionSet()
         # Adapt data for Model
-        predictionSet = np.stack(predictionSet, axis=0)
+        predictionSet = np.stack(predictionSetRaw, axis=0)
 
         # Standardize data
         predictionSet, used_scaler = self.standardizeData(predictionSet)
@@ -111,13 +111,12 @@ class PredictionService:
 
         # Make the Prediction
         predictions = model.predict(predictionSet)
+
+        # TODO: implement a method to do the inverse transformation and de-standardize the data
         # Create the DataFrame for the prediction
         predictions_reshaped = predictions.reshape(-1, 1)
-        predictions_reshaped_df = pd.DataFrame(predictions_reshaped, columns=['prediction'])
+        #predictions_reshaped_df = pd.DataFrame(predictions_reshaped, columns=['prediction'])
 
-
-
-        print(predictions_reshaped_df)
 
         return predictions
 
