@@ -4,12 +4,11 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from sklearn.preprocessing import StandardScaler
-
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from DataPreparation import DataPreparation as dt
 import tensorflow as tf
-import ModelService as model
+import joblib
 
 # Set silent option on downcasting to avoid warning
 pd.set_option('future.no_silent_downcasting', True)
@@ -88,9 +87,9 @@ class PredictionService:
 
         # Now, adapt the data for model with the appropriate function
         predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet,
-                                        ['year','month','day','hour','lat','lng'])
+                                        ['year','month','day','hour','lat','lng'], labels=False)
 
-        return predictionSet
+        return predictionSet,rawPredictionSet
 
     # Class to load the model and run the predictions
     def NNPredict (self):
@@ -99,7 +98,7 @@ class PredictionService:
         model = tf.keras.models.load_model(self.model + '.h5')
 
         # Load the data creating a time-ahead set
-        predictionSetRaw = self.createPredictionSet()
+        predictionSetRaw, predictionSet_df = self.createPredictionSet()
         # Adapt data for Model
         predictionSet = np.stack(predictionSetRaw, axis=0)
 
@@ -112,13 +111,26 @@ class PredictionService:
         # Make the Prediction
         predictions = model.predict(predictionSet)
 
-        # TODO: implement a method to do the inverse transformation and de-standardize the data
         # Create the DataFrame for the prediction
-        predictions_reshaped = predictions.reshape(-1, 1)
-        #predictions_reshaped_df = pd.DataFrame(predictions_reshaped, columns=['prediction'])
+        targetScaler = joblib.load('scaler_labels.pkl')
 
+        # Reshape to apply the inverse transform
+        predictions_standardized_reshaped = predictions.reshape(-1, 1)  # (96 * 716, 1)
+        predictions_original_scale = targetScaler.inverse_transform(predictions_standardized_reshaped)
+        # Put the array in the original shape
+        predictions_original_scale = predictions_original_scale.reshape(predictions.shape)
 
-        return predictions
+        # Convert to DataFrame
+        # Find the variable name from model name to call the prediction column (Model name will have always the same order)
+        predictedVariable = self.model.split('_')[2]
+        df_prediction = pd.DataFrame(predictions_original_scale.reshape(-1, 1), columns=[predictedVariable])
+
+        # Concatenate the prediction with the prediction set
+        prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis = 1)
+        prediction_df_complete = prediction_df_complete.set_axis(['date', 'longitude', 'latitude',
+                                                                  predictedVariable], axis = 1)
+
+        return prediction_df_complete
 
     def getSetSize (self, set):
 

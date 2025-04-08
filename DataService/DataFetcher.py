@@ -1,8 +1,8 @@
 import DataService as dt
 from ReportingLibrary import Animations as ani
 
-start_date = "2025-03-30"
-end_date = "2025-03-31"
+start_date = "2025-03-31"
+end_date = "2025-04-06"
 grid_step = 0.22
 
 dataExtract = dt.DataService().getWeatherDataForPointGrid(grid_step = grid_step,

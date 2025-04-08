@@ -31,11 +31,10 @@ class LocalizedWeather:
 
         return dataClass
 
-    def getFilteredDatasetForCity (self, city, start_date = None, end_date = None, aggregation = 'hourly', grid_step = 0.22):
+    def findCityCoordinates (self, weatherData, city, start_date = None, end_date = None, aggregation = 'hourly'):
 
         # Data Class Instantiation (use dask only for the Weather Dataset that is massive, while for the cities one keep
         # the old method)
-        dataClass_dk = self.databaseModule(dask = True)
         dataClass = self.databaseModule()
 
         # Get the cities data for the specific city
@@ -44,14 +43,9 @@ class LocalizedWeather:
         if len(selectedCity['latitude']) == 0:
             raise Exception ("The city: " + city + " has NOT been found in the Database!")
 
-        # Only narrow date filters are admitted
-        weatherData = dataClass.executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
-                                             '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
-                                             end_date + "'")
-
         # Find the nearest Points with the greediest method possible
         # First, isolate the 716 grid points
-        uniqueCoords = weatherData.drop_duplicates(subset = ['latitude', 'longitude'])
+        uniqueCoords = weatherData.drop_duplicates(subset=['latitude', 'longitude'])
 
         # Now, compute distance with the appropriate library
         target = (selectedCity['latitude'].values, selectedCity['longitude'].values)
@@ -65,8 +59,8 @@ class LocalizedWeather:
             uniqueCoords['Distance_km'] == uniqueCoords['Distance_km'].min()].reset_index(drop=True)
 
         filteredWeatherData = weatherData[(weatherData['latitude'] == minDistanceCoord['latitude'].values[0]) &
-                                          (weatherData['longitude'] == minDistanceCoord['longitude'].values[0])].reset_index(drop=True)
-
+                                          (weatherData['longitude'] == minDistanceCoord['longitude'].values[
+                                              0])].reset_index(drop=True)
         # Aggregate if necessary
         if aggregation == 'daily':
             filteredWeatherData['date'] = pd.to_datetime(filteredWeatherData['date']).dt.date
@@ -76,9 +70,28 @@ class LocalizedWeather:
         if (start_date != None) & (end_date != None):
             dt_date_start = pd.to_datetime(start_date, format="%Y-%m-%d").date()
             dt_date_end = pd.to_datetime(end_date, format="%Y-%m-%d").date()
-            filteredWeatherData = filteredWeatherData[(pd.to_datetime(filteredWeatherData['date']).dt.date > dt_date_start) &
-                        (pd.to_datetime(filteredWeatherData['date']).dt.date < dt_date_end)].reset_index(drop = True)
+            filteredWeatherData = filteredWeatherData[
+                (pd.to_datetime(filteredWeatherData['date']).dt.date > dt_date_start) &
+                (pd.to_datetime(filteredWeatherData['date']).dt.date < dt_date_end)].reset_index(drop=True)
         filteredWeatherData['date'] = pd.to_datetime(filteredWeatherData['date'])
+
+        return filteredWeatherData, uniqueCoords
+
+    def getFilteredDatasetForCity (self, city, start_date = None, end_date = None, aggregation = 'hourly', grid_step = 0.22):
+
+        # Data Class Instantiation (use dask only for the Weather Dataset that is massive, while for the cities one keep
+        # the old method)
+        dataClass = self.databaseModule()
+
+        # Only narrow date filters are admitted
+        weatherData = dataClass.executeQuery('SELECT * FROM public."WeatherForRegion_' + str(grid_step) +
+                                             '" WHERE date BETWEEN ' + "'" + start_date + "'" + ' AND ' + "'" +
+                                             end_date + "'")
+
+        # Find the nearest Points with the greediest method possible
+        filteredWeatherData, uniqueCoords = self.findCityCoordinates(weatherData = weatherData,
+                                            selectedCity=city, start_date = start_date, end_date = end_date,
+                                                                     aggregation = aggregation)
 
         return filteredWeatherData, uniqueCoords
 
@@ -189,6 +202,40 @@ class LocalizedWeather:
 
         plt.tight_layout()
         plt.show()
+
+    # Method to have weather Prediction plot from DataFrame
+    def getPredictionTimeSeriesOnTargetVariable (self, predictedDf, city, predictedVariable):
+
+        dataClass = self.databaseModule()
+        # isolate the city Name
+        # Get the cities data for the specific city
+        cities = dataClass.getDataFromTable("Cities_Italy")
+        selectedCity = cities[['lat', 'lng']][cities['city'] == city].reset_index(drop=True).set_axis(['latitude', 'longitude'], axis = 1).reset_index(drop=True)
+        if len(selectedCity['latitude']) == 0:
+            raise Exception ("The city: " + city + " has NOT been found in the Database!")
+
+        cityCoord, coords = self.findCityCoordinates(weatherData=predictedDf, city=city,
+                                 start_date=None, end_date=None, aggregation='hourly')
+        # A little bit of logging
+        print(predictedVariable + ' Min registered from prediction: ' + str(cityCoord[predictedVariable].min()) + ' on ' +
+              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].min()]).dt.strftime('%d/%m/%Y').reset_index(drop = True)[0])
+        print(predictedVariable + ' Max registered from prediction: ' + str(cityCoord[predictedVariable].max()) + ' on ' +
+              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].max()]).dt.strftime('%d/%m/%Y').reset_index(drop = True)[0])
+
+        # Now, plot
+        plt.figure(figsize = (12, 4))
+        plt.plot(cityCoord.set_index('date')[predictedVariable])
+        plt.title(city + ' - ' + predictedVariable + ' prediction Evolution')
+        plt.xlabel('Date')
+        plt.ylabel(predictedVariable)
+        plt.show()
+
+        return cityCoord, coords
+
+
+
+
+
 
 
 
