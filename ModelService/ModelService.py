@@ -17,7 +17,7 @@ class ModelService:
         pass
 
     # Utils-like function to standardize the data
-    def standardizeData(self, set, saveScaler=False):
+    def standardizeData(self, set, saveScaler=False, model_name='None'):
 
         # Initialize the scaler from scikit-learn
         scaler = StandardScaler()
@@ -33,11 +33,12 @@ class ModelService:
         X_scaled = X_scaled.reshape(num_samples, num_obs, num_features)
 
         if saveScaler:
-            joblib.dump(scaler, 'scaler_labels.pkl')
+            joblib.dump(scaler, 'scaler_labels_' + model_name + '.pkl')
 
         return X_scaled
 
-    def NNModel (self, modelStructure, trainingEpochs, save_name, return_seq_last_rec_layer = False, standardize=True):
+    def NNModel (self, modelStructure, trainingEpochs, save_name, dropout_LSTM, dropout_FF,
+                 return_seq_last_rec_layer = False, standardize=True):
 
         # Adapt data for Model
         train_set = np.stack(self.train_set, axis=0)
@@ -48,9 +49,10 @@ class ModelService:
         if standardize:
             # Standardize the data
             train_set = self.standardizeData(train_set)
-            train_labels = self.standardizeData(train_labels, saveScaler=True)
+            # Save the scaler only for train (test set may have fewer observations)
+            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=save_name)
             test_set = self.standardizeData(test_set)
-            test_labels = self.standardizeData(test_labels, saveScaler=True)
+            test_labels = self.standardizeData(test_labels)
 
         # Make the array numeric
         train_set = np.array(train_set, dtype=np.float32)
@@ -92,13 +94,18 @@ class ModelService:
                             layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
                     else:
                         layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
-                # Add layer to the model
+                # Add the dropout layer
+                model.add(tf.keras.layers.Dropout(dropout_LSTM))
+                # Finally, add the layer to the model
                 model.add(layer)
 
         # then, add the FF layer
         for l in range(len(modelStructure['FF'])):
             unitsFF = modelStructure['FF'][l]
             layerFF = tf.keras.layers.Dense(unitsFF, activation='relu')
+            # Add the Dropout layer for FF
+            model.add(tf.keras.layers.Dropout(dropout_FF))
+            # Finally, add the FF layer to the model
             model.add(layerFF)
 
         model.add(tf.keras.layers.Dense(1, activation='linear'))

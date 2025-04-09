@@ -204,7 +204,7 @@ class LocalizedWeather:
         plt.show()
 
     # Method to have weather Prediction plot from DataFrame
-    def getPredictionTimeSeriesOnTargetVariable (self, predictedDf, city, predictedVariable):
+    def getPredictionTimeSeriesOnTargetVariable (self, predictedDf, city, predictedVariable, confidence_levels = False):
 
         dataClass = self.databaseModule()
         # isolate the city Name
@@ -218,13 +218,17 @@ class LocalizedWeather:
                                  start_date=None, end_date=None, aggregation='hourly')
         # A little bit of logging
         print(predictedVariable + ' Min registered from prediction: ' + str(cityCoord[predictedVariable].min()) + ' on ' +
-              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].min()]).dt.strftime('%d/%m/%Y').reset_index(drop = True)[0])
+              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].min()]).dt.strftime("%d/%m/%Y %H:%M").reset_index(drop = True)[0])
         print(predictedVariable + ' Max registered from prediction: ' + str(cityCoord[predictedVariable].max()) + ' on ' +
-              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].max()]).dt.strftime('%d/%m/%Y').reset_index(drop = True)[0])
+              pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].max()]).dt.strftime("%d/%m/%Y %H:%M").reset_index(drop = True)[0])
+        print('Average ' + predictedVariable + ': ' + str(cityCoord[predictedVariable].mean()))
 
         # Now, plot
         plt.figure(figsize = (12, 4))
         plt.plot(cityCoord.set_index('date')[predictedVariable])
+        if confidence_levels:
+            plt.fill_between(cityCoord['date'], cityCoord.set_index('date')[predictedVariable + '_lower'],
+                             cityCoord.set_index('date')[predictedVariable + '_upper'], color = 'pink')
         plt.title(city + ' - ' + predictedVariable + ' prediction Evolution')
         plt.xlabel('Date')
         plt.ylabel(predictedVariable)

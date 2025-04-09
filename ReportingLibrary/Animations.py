@@ -106,7 +106,7 @@ class Animations:
         plt.show()
 
     def generateAnimationOnWeatherVariableFromDataFrame (self, dataFrame, weatherVariable, colorScale, start_date = None,
-                                            end_date = None, save = False):
+                                            end_date = None, save = False, show = True):
 
         # Params
         print('Generating Animation...')
@@ -176,4 +176,5 @@ class Animations:
                      writer="pillow", fps=15)
 
         # Show
-        plt.show()
+        if show:
+            plt.show()

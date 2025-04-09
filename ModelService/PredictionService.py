@@ -92,7 +92,7 @@ class PredictionService:
         return predictionSet,rawPredictionSet
 
     # Class to load the model and run the predictions
-    def NNPredict (self):
+    def NNPredict (self, confidence_levels=False, n_iter=None):
 
         # Load the NN Model
         model = tf.keras.models.load_model(self.model + '.h5')
@@ -101,36 +101,84 @@ class PredictionService:
         predictionSetRaw, predictionSet_df = self.createPredictionSet()
         # Adapt data for Model
         predictionSet = np.stack(predictionSetRaw, axis=0)
-
-        # Standardize data
-        predictionSet, used_scaler = self.standardizeData(predictionSet)
-
-        # Visualize the data size
-        print('Prediction Set Size: ', self.getSetSize(predictionSet))
-
-        # Make the Prediction
-        predictions = model.predict(predictionSet)
-
-        # Create the DataFrame for the prediction
-        targetScaler = joblib.load('scaler_labels.pkl')
-
-        # Reshape to apply the inverse transform
-        predictions_standardized_reshaped = predictions.reshape(-1, 1)  # (96 * 716, 1)
-        predictions_original_scale = targetScaler.inverse_transform(predictions_standardized_reshaped)
-        # Put the array in the original shape
-        predictions_original_scale = predictions_original_scale.reshape(predictions.shape)
-
-        # Convert to DataFrame
-        # Find the variable name from model name to call the prediction column (Model name will have always the same order)
         predictedVariable = self.model.split('_')[2]
-        df_prediction = pd.DataFrame(predictions_original_scale.reshape(-1, 1), columns=[predictedVariable])
 
-        # Concatenate the prediction with the prediction set
-        prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis = 1)
-        prediction_df_complete = prediction_df_complete.set_axis(['date', 'longitude', 'latitude',
-                                                                  predictedVariable], axis = 1)
+        if confidence_levels==False:
+
+            # Standardize data
+            predictionSet, used_scaler = self.standardizeData(predictionSet)
+
+            # Visualize the data size
+            print('Prediction Set Size: ', self.getSetSize(predictionSet))
+
+            # Make the Prediction
+            predictions = model.predict(predictionSet)
+
+            # Create the DataFrame for the prediction
+            targetScaler = joblib.load('scaler_labels_' + self.model + '.pkl')
+
+            # Reshape to apply the inverse transform
+            predictions_standardized_reshaped = predictions.reshape(-1, 1)  # (96 * 716, 1)
+            predictions_original_scale = targetScaler.inverse_transform(predictions_standardized_reshaped)
+            # Put the array in the original shape
+            predictions_original_scale = predictions_original_scale.reshape(predictions.shape)
+
+            # Convert to DataFrame
+            # Find the variable name from model name to call the prediction column (Model name will have always the same order)
+            df_prediction = pd.DataFrame(predictions_original_scale.reshape(-1, 1), columns=[predictedVariable])
+
+            # Concatenate the prediction with the prediction set
+            prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis = 1)
+            prediction_df_complete = prediction_df_complete.set_axis(['date', 'longitude', 'latitude',
+                                                                      predictedVariable], axis = 1)
+
+        else:
+            n_iter = n_iter
+            print('Running ' + str(n_iter) + ' Iterations with Montecarlo Dropout layer...')
+            preds_mc = self.predict_with_uncertainty(model, predictionSet, n_iter=n_iter)
+
+            # Computation of mean and std
+            pred_mean = tf.reduce_mean(preds_mc, axis=0).numpy()  # shape: (batch, output)
+            pred_std = tf.math.reduce_std(preds_mc, axis=0).numpy()  # shape: (batch, output)
+
+            # Apply the inverse transform on mean and std
+            # On the mean
+            targetScaler = joblib.load('scaler_labels_' + self.model + '.pkl')
+            pred_mean_reshaped = pred_mean.reshape(-1, 1)
+            predictions_original_scale = targetScaler.inverse_transform(pred_mean_reshaped)
+            predictions_original_scale = predictions_original_scale.reshape(pred_mean.shape)
+            # On the standard deviation
+            pred_std_reshaped = pred_std.reshape(-1, 1)
+            predictions_std_original_scale = targetScaler.inverse_transform(pred_std_reshaped)
+            predictions_std_original_scale = predictions_std_original_scale.reshape(pred_std.shape)
+
+            # Confidence bands (95%)
+            upper_bound = predictions_std_original_scale + 1.96 * predictions_std_original_scale
+            lower_bound = predictions_std_original_scale - 1.96 * predictions_std_original_scale
+
+            # DataFrame
+            predictedVariable = self.model.split('_')[2]
+            df_prediction = pd.DataFrame({
+                predictedVariable: predictions_std_original_scale.reshape(-1),
+                predictedVariable + '_std': predictions_std_original_scale.reshape(-1),
+                predictedVariable + '_upper': upper_bound.reshape(-1),
+                predictedVariable + '_lower': lower_bound.reshape(-1)
+            })
+
+            prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis=1)
+            prediction_df_complete.columns = ['date', 'longitude', 'latitude',
+                                              predictedVariable,
+                                              predictedVariable + '_std',
+                                              predictedVariable + '_upper',
+                                              predictedVariable + '_lower']
 
         return prediction_df_complete
+
+    # This function is to predict with confidence levels
+    @tf.function
+    def predict_with_uncertainty(self, f_model, x, n_iter=100):
+        predictions = tf.stack([f_model(x, training=True) for _ in range(n_iter)], axis=0)
+        return predictions  # Shape: (n_iter, batch, output)
 
     def getSetSize (self, set):
 
