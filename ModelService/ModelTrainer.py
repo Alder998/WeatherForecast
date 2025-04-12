@@ -7,7 +7,7 @@ import ModelService as model
 variableToPredict = 'temperature'
 start_date = '2025-02-01'
 end_date = '2025-03-31'
-trainingEpochs = 15
+trainingEpochs = 30
 timeSplit = True
 spaceSplit = True
 
@@ -35,7 +35,8 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                                         'longitude'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
-                                                   space_split=spaceSplit)
+                                                   space_split=spaceSplit,
+                                                   nearPointsPerGroup=4)
 # Train the Model
 # Model Structure
 structure = {'FF': [500, 500, 500, 500, 500],

@@ -71,7 +71,8 @@ class DataPreparation:
 
         return newSizeData
 
-    def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True):
+    def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True,
+                           nearPointsPerGroup = 4):
 
         # check that space OR time split has been filled as True
         if (space_split == False) & (time_split == False):
@@ -83,9 +84,15 @@ class DataPreparation:
         gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step))
 
         pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
-                                    int(len(gridPoints[gridPoints.columns[0]]) * test_size))
+                                    int(len(gridPoints[gridPoints.columns[0]]) * (test_size/nearPointsPerGroup)))
         # Make all the values inside the array integers
         pointDivision = [int(point) for point in pointDivision]
+
+        for addingPoint in range(1, nearPointsPerGroup + 1):
+            pointDivision.extend([x + addingPoint for x in pointDivision])
+        # "Block" the division size to the maximum available
+        #pointDivision = pointDivision[:int(len(gridPoints[gridPoints.columns[0]]) * (test_size))]
+
         # Filter for data Points inside and outside the Grid
         grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
@@ -119,7 +126,8 @@ class DataPreparation:
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
         return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
-    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True):
+    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True,
+                         time_split=True, nearPointsPerGroup=4):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
         # Train-test split
@@ -128,7 +136,8 @@ class DataPreparation:
                                                                 predictiveVariables=predictiveVariables,
                                                                 variableToPredict=variableToPredict,
                                                                 space_split=space_split,
-                                                                time_split=time_split)
+                                                                time_split=time_split,
+                                                                nearPointsPerGroup = nearPointsPerGroup)
         return train_set, test_set, train_labels, test_labels
 
     def getSetSize (self, set):

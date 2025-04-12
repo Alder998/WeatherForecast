@@ -62,6 +62,8 @@ class ModelService:
 
         print('Train Set shape:', train_set.shape)
         print('Train Labels shape:', train_labels.shape)
+        print('Test Set shape:', test_set.shape)
+        print('Test Labels shape:', test_labels.shape)
 
         # Instatiate The Tensorflow Object Model
         model = tf.keras.Sequential()
