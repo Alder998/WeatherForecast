@@ -20,6 +20,6 @@ animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dat
                                                                 show=True)
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Milano',
+                                                                                     city = 'Lavagna',
                                                                                      predictedVariable = 'temperature',
                                                                                      confidence_levels=False)

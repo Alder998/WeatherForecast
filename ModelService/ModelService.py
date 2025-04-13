@@ -85,7 +85,7 @@ class ModelService:
                 if l == 0:
                     # Input_shape required on the first layer
                     layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True,
-                                                 input_shape=(train_set.shape[0], train_set.shape[2]))
+                                                 input_shape=(None, train_set.shape[2]))
                 else:
                     if return_seq_last_rec_layer:
                         # For others, no issues

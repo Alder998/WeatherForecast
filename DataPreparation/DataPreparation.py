@@ -5,6 +5,7 @@ import numpy as np
 from dotenv import load_dotenv
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
+from geopy.distance import geodesic
 
 class DataPreparation:
 
@@ -81,21 +82,25 @@ class DataPreparation:
         # For the geospatial purpose, we need to implement a special Train-Test setting
         # First, apply the Geo split (test: try to take 1 each 3 or 4 observations)
         # Take data from Time Grid (gridPoints_ + selected grid)
-        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step))
+        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
 
+        # Space division: there is the need to find, set, model the test selecting NEAR POINTS
         pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
-                                    int(len(gridPoints[gridPoints.columns[0]]) * (test_size/nearPointsPerGroup)))
+                                    int(len(gridPoints[gridPoints.columns[0]]) * test_size/nearPointsPerGroup))
+
         # Make all the values inside the array integers
         pointDivision = [int(point) for point in pointDivision]
 
         for addingPoint in range(1, nearPointsPerGroup + 1):
             pointDivision.extend([x + addingPoint for x in pointDivision])
-        # "Block" the division size to the maximum available
-        #pointDivision = pointDivision[:int(len(gridPoints[gridPoints.columns[0]]) * (test_size))]
+
+        # TEMPORARY: "Block" the division size to the maximum available
+        pointDivision = pointDivision[:int(len(gridPoints[gridPoints.columns[0]]) * (test_size))]
 
         # Filter for data Points inside and outside the Grid
         grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
+
 
         # Remove duplicates from original Dataset, and sort from the least recent to the most recent
         dataset = dataset.drop_duplicates(subset=['date', 'latitude', 'longitude']).reset_index(drop=True)
