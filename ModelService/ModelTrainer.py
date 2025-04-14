@@ -48,5 +48,5 @@ model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(model
                                                                            dropout_FF=0.2,
                                                                            dropout_LSTM=0.2,
                                                                            standardize=True,
-                                                                           return_seq_last_rec_layer=True,
+                                                                           return_seq_last_rec_layer=False,
                                                                            save_name=modelName)

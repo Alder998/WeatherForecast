@@ -109,13 +109,15 @@ class ModelService:
             model.add(tf.keras.layers.Dropout(dropout_FF))
             # Finally, add the FF layer to the model
             model.add(layerFF)
-
+        # This layer is to correct the Mismatch of size caused by the Up-sampling of the Convolutional Layer
+        # Dense final Layer for regression
         model.add(tf.keras.layers.Dense(1, activation='linear'))
 
         # Compile
         model.compile(optimizer='adam',
                       loss=tf.keras.losses.MeanSquaredError(),
                       metrics=['mse'])
+
         # Now, Train the Model
         model.fit(train_set, train_labels, epochs=trainingEpochs)
 

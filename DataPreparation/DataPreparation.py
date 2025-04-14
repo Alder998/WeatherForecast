@@ -101,7 +101,6 @@ class DataPreparation:
         grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
 
-
         # Remove duplicates from original Dataset, and sort from the least recent to the most recent
         dataset = dataset.drop_duplicates(subset=['date', 'latitude', 'longitude']).reset_index(drop=True)
         dataset['date'] = pd.to_datetime(dataset['date'])
@@ -129,6 +128,14 @@ class DataPreparation:
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
+        # REVISE 2: Make test and train set EVEN to make the Convolutional Model simpler and more flexible
+        if (train_set[0].shape[0] % 2) != 0:
+            train_set = [x[:-1, :] for x in train_set]
+            train_labels = [x[:-1, :] for x in train_labels]
+        if (test_set[0].shape[0] % 2) != 0:
+            test_set = [x[:-1, :] for x in test_set]
+            test_labels = [x[:-1, :] for x in test_labels]
+
         return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True,
