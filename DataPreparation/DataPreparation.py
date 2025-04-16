@@ -85,7 +85,7 @@ class DataPreparation:
         gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
 
         # Space division: there is the need to find, set, model the test selecting NEAR POINTS
-        pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
+        pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]) - nearPointsPerGroup,
                                     int(len(gridPoints[gridPoints.columns[0]]) * test_size/nearPointsPerGroup))
 
         # Make all the values inside the array integers
@@ -114,9 +114,9 @@ class DataPreparation:
         # Apply the train and test grid to the geo data, accordingly
         if space_split:
             trainSet = trainSet[(trainSet['latitude'].isin(grid_train['lat'])) &
-                                (trainSet['longitude'].isin(grid_train['lng']))]
+                                (trainSet['longitude'].isin(grid_train['lng']))].reset_index(drop=True)
             testSet = testSet[(testSet['latitude'].isin(grid_test['lat'])) &
-                                (testSet['longitude'].isin(grid_test['lng']))]
+                                (testSet['longitude'].isin(grid_test['lng']))].reset_index(drop=True)
 
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False)
@@ -129,10 +129,10 @@ class DataPreparation:
         # Each one of the sets has a snapshot of the geographic area according to the time frame
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
         # REVISE 2: Make test and train set EVEN to make the Convolutional Model simpler and more flexible
-        if (train_set[0].shape[0] % 2) != 0:
+        if (train_set[1].shape[0] % 2) != 0:
             train_set = [x[:-1, :] for x in train_set]
             train_labels = [x[:-1, :] for x in train_labels]
-        if (test_set[0].shape[0] % 2) != 0:
+        if (test_set[1].shape[0] % 2) != 0:
             test_set = [x[:-1, :] for x in test_set]
             test_labels = [x[:-1, :] for x in test_labels]
 

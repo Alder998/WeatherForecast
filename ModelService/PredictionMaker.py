@@ -8,7 +8,7 @@ classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_tem
                                   grid_step=0.22,
                                   start_date="2025-03-31",
                                   prediction_steps=96)
-predictions = classModule.NNPredict(confidence_levels=False, n_iter = None)
+predictions = classModule.NNPredict(confidence_levels=False, n_iter=None)
 
 # Report Part
 animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dataFrame=predictions,

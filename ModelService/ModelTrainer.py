@@ -10,7 +10,7 @@ end_date = '2025-03-31'
 trainingEpochs = 15
 timeSplit = True
 spaceSplit = True
-nearPointsPerGroup = 8
+nearPointsPerGroup = 20
 
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
               datetime.strptime(start_date, '%Y-%m-%d')).days
