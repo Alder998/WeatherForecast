@@ -90,7 +90,7 @@ class LocalizedWeather:
 
         # Find the nearest Points with the greediest method possible
         filteredWeatherData, uniqueCoords = self.findCityCoordinates(weatherData = weatherData,
-                                            selectedCity=city, start_date = start_date, end_date = end_date,
+                                            city=city, start_date = start_date, end_date = end_date,
                                                                      aggregation = aggregation)
 
         return filteredWeatherData, uniqueCoords
