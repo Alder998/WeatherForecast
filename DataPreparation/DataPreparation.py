@@ -115,6 +115,7 @@ class DataPreparation:
     def select_points_within_radius(self, df, center, radius_km):
 
         # Approximate Euclidean Distance
+        df = df.copy()
         df['dist'] = np.sqrt((df['lng'] - center[0]) ** 2 + (df['lat'] - center[1]) ** 2)
 
         # Convert 111 km -> 1 rad
@@ -122,16 +123,24 @@ class DataPreparation:
         df['dist_km'] = df['dist'] * km_per_degree
 
         test_coord = df[df['dist_km'] <= radius_km].drop(columns=['dist', 'dist_km'])
-        grid_test = df[(df['lng'].isin(test_coord['lng'])) & (df['lat'].isin(test_coord['lat']))].reset_index(drop=True)
-        grid_train = df[(~df['lng'].isin(test_coord['lng'])) | (~df['lat'].isin(test_coord['lat']))].reset_index(drop=True)
+        # Build the key
+        df1 = df.copy()
+        df1['key'] = df['lat'].astype(str) + '_' + df['lng'].astype(str)
+        test_coord['key'] = test_coord['lat'].astype(str) + '_' + test_coord['lng'].astype(str)
+        grid_test = df1[df1['key'].isin(test_coord['key'])].reset_index(drop=True)
+        grid_train = df1[~df1['key'].isin(test_coord['key'])].reset_index(drop=True)
+
+        # Take the necessary columns only
+        grid_train = grid_train[['lat', 'lng']]
+        grid_test = grid_test[['lat', 'lng']]
 
         return grid_train, grid_test
 
-    def getSpaceSplitByRadius(self, test_size, radius_km, nearPointsPerGroup):
+    def getSpaceSplitByRadius(self, test_size, radius_km, nearPointsPerGroup, plot_space_split=False):
 
         gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
 
-        points = np.linspace(0, len(gridPoints[gridPoints.columns[0]] - nearPointsPerGroup),
+        points = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
                              int((len(gridPoints[gridPoints.columns[0]]) * test_size) / nearPointsPerGroup))
         grid_train_r = []
         grid_test_r = []
@@ -144,6 +153,14 @@ class DataPreparation:
             grid_test_r.append(te_r)
         grid_train_r = pd.concat([df for df in grid_train_r], axis=0).reset_index(drop=True)
         grid_test_r = pd.concat([df for df in grid_test_r], axis=0).reset_index(drop=True)
+
+        if plot_space_split:
+            plt.figure(figsize=(7, 7))
+            plt.scatter(x=grid_train_r['lng'], y=grid_train_r['lat'], color='blue', label='Train Points')
+            plt.scatter(x=grid_test_r['lng'], y=grid_test_r['lat'], color='red', label='Test Points')
+            plt.title('Space Split on point grid')
+            plt.legend()
+            plt.show()
 
         return grid_train_r, grid_test_r
 
@@ -158,8 +175,9 @@ class DataPreparation:
         if space_split_method == 'uniform':
             grid_train, grid_test = self.getSpaceSplitNearPoints(test_size=test_size, nearPointsPerGroup = nearPointsPerGroup,
                                                                  plot_space_split=plot_space_split)
-        if space_split_method == 'radius':
-            grid_train, grid_test = self.getSpaceSplitByRadius(test_size=test_size, radius_km=25, nearPointsPerGroup=nearPointsPerGroup)
+        elif space_split_method == 'radius':
+            grid_train, grid_test = self.getSpaceSplitByRadius(test_size=test_size, radius_km=60, nearPointsPerGroup=nearPointsPerGroup,
+                                                               plot_space_split = plot_space_split)
 
         # Remove duplicates from original Dataset, and sort from the least recent to the most recent
         dataset = dataset.drop_duplicates(subset=['date', 'latitude', 'longitude']).reset_index(drop=True)
@@ -177,6 +195,9 @@ class DataPreparation:
             testSet['key'] = testSet['latitude'].astype(str) + '_' + testSet['longitude'].astype(str)
             grid_train['key'] = grid_train['lat'].astype(str) + '_' + grid_train['lng'].astype(str)
             grid_test['key'] = grid_test['lat'].astype(str) + '_' + grid_test['lng'].astype(str)
+
+            # TEST:
+            grid_train = grid_train[~grid_train['key'].isin(grid_test['key'])].reset_index(drop=True)
 
             trainSet = trainSet[(trainSet['key'].isin(grid_train['key']))].reset_index(drop=True)
             testSet = testSet[(testSet['key'].isin(grid_test['key']))].reset_index(drop=True)

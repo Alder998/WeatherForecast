@@ -10,7 +10,7 @@ end_date = '2025-04-14'
 trainingEpochs = 30
 timeSplit = True
 spaceSplit = True
-nearPointsPerGroup = 20
+nearPointsPerGroup = 15
 
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
               datetime.strptime(start_date, '%Y-%m-%d')).days
@@ -38,8 +38,8 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    time_split=timeSplit,
                                                    space_split=spaceSplit,
                                                    nearPointsPerGroup=nearPointsPerGroup,
-                                                   space_split_method = 'uniform',
-                                                   plot_space_split=False)
+                                                   space_split_method = 'radius',
+                                                   plot_space_split=True)
 # Train the Model
 # Model Structure
 structure = {'FF': [500, 500, 500, 500, 500],
