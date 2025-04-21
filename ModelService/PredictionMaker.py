@@ -4,9 +4,9 @@ import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_temperature_103d_15Epochs',
+classModule = p.PredictionService(model='WeatherForecastModel_TimeSplit_temperature_103d_30Epochs',
                                   grid_step=0.22,
-                                  start_date="2025-04-14",
+                                  start_date="2025-04-13",
                                   prediction_steps=96)
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None)
 

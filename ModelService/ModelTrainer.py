@@ -7,9 +7,9 @@ import ModelService as model
 variableToPredict = 'temperature'
 start_date = '2025-01-01'
 end_date = '2025-04-14'
-trainingEpochs = 30
+trainingEpochs = 15
 timeSplit = True
-spaceSplit = True
+spaceSplit = False
 nearPointsPerGroup = 15
 
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
@@ -39,7 +39,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split=spaceSplit,
                                                    nearPointsPerGroup=nearPointsPerGroup,
                                                    space_split_method = 'radius',
-                                                   plot_space_split=True)
+                                                   plot_space_split=False)
 # Train the Model
 # Model Structure
 structure = {'FF': [500, 500, 500, 500, 500],
@@ -47,8 +47,8 @@ structure = {'FF': [500, 500, 500, 500, 500],
              'Conv': [64, 64, 64, 64]}
 model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                            trainingEpochs=trainingEpochs,
-                                                                           dropout_FF=0.15,
-                                                                           dropout_LSTM=0.15,
+                                                                           dropout_FF=0.30,
+                                                                           dropout_LSTM=0.30,
                                                                            standardize=True,
                                                                            return_seq_last_rec_layer=False,
                                                                            save_name=modelName)

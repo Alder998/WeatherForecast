@@ -216,6 +216,17 @@ class LocalizedWeather:
 
         cityCoord, coords = self.findCityCoordinates(weatherData=predictedDf, city=city,
                                  start_date=None, end_date=None, aggregation='hourly')
+
+        # Gest the last n-observations from data
+        cityCoord_real, coords_real = self.getLastObservationsFromCityAndVariable (grid_step=0.22, city=city)
+
+        print(cityCoord['date'].min())
+        print(cityCoord_real['date'].max())
+
+        # concatenate with the predictions
+        allCityCoords = pd.concat([cityCoord_real[['date', predictedVariable]], cityCoord[['date', predictedVariable]]], axis = 0).reset_index(drop=True)
+        allCityCoords = allCityCoords.sort_values(by='date', ascending=True).reset_index(drop=True)
+
         # A little bit of logging
         print(predictedVariable + ' Min registered from prediction: ' + str(cityCoord[predictedVariable].min()) + ' on ' +
               pd.to_datetime(cityCoord['date'][cityCoord[predictedVariable] == cityCoord[predictedVariable].min()]).dt.strftime("%d/%m/%Y %H:%M").reset_index(drop = True)[0])
@@ -225,17 +236,39 @@ class LocalizedWeather:
 
         # Now, plot
         plt.figure(figsize = (12, 4))
-        plt.plot(cityCoord.set_index('date')[predictedVariable])
+        # Plot Actual
+        plt.plot(allCityCoords[allCityCoords['date'] < cityCoord_real['date'].max()].set_index('date')[predictedVariable],
+                 color = 'blue', label = 'Actual data')
+        # plot Prediction with different color
+        plt.plot(allCityCoords[allCityCoords['date'] > cityCoord_real['date'].max()].set_index('date')[predictedVariable],
+                 color = 'red',linestyle = 'dashed', label = 'Prediction')
+        plt.axvline(cityCoord_real['date'].max(), color='black', linestyle='dashed')
         if confidence_levels:
-            plt.fill_between(cityCoord['date'], cityCoord.set_index('date')[predictedVariable + '_lower'],
-                             cityCoord.set_index('date')[predictedVariable + '_upper'], color = 'pink')
+            plt.fill_between(allCityCoords['date'], allCityCoords.set_index('date')[predictedVariable + '_lower'],
+                             allCityCoords.set_index('date')[predictedVariable + '_upper'], color = 'pink')
         plt.title(city + ' - ' + predictedVariable + ' prediction Evolution')
         plt.xlabel('Date')
         plt.ylabel(predictedVariable)
+        plt.legend()
         plt.show()
 
         return cityCoord, coords
 
+    # function to get the latest observation on a city
+    def getLastObservationsFromCityAndVariable (self, grid_step, city, steps_behind = 10):
+
+        dataClass = self.databaseModule()
+        lastDate = dataClass.executeQuery('SELECT MAX(date) FROM public."WeatherForRegion_' + str(grid_step) + '"')['max'][0]
+
+        lastDate = pd.to_datetime(str(lastDate))
+        lastDate_nDaysBefore = lastDate - pd.Timedelta(days=steps_behind)
+
+        # Now, isolate the last n-dates
+        cityCoord, coords = self.getFilteredDatasetForCity(city, start_date=lastDate_nDaysBefore.strftime("%Y-%m-%d"),
+                                                             end_date=lastDate.strftime("%Y-%m-%d"),
+                                                             aggregation='hourly', grid_step=0.22)
+
+        return cityCoord, coords
 
 
 
