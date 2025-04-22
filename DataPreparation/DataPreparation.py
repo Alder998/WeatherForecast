@@ -164,6 +164,46 @@ class DataPreparation:
 
         return grid_train_r, grid_test_r
 
+    # Function for weekly time split not be affected by seasonality
+    def timeSplit (self, dataset, test_size):
+
+        # Create date range from start date to end date (returning n weeks sunday-sunday according the time range)
+        weeklyRange = pd.date_range(pd.to_datetime(dataset['date']).min(), pd.to_datetime(dataset['date']).max(), freq='W')
+        # Isolate the test set
+        weeklyIndex = np.linspace(0, len(weeklyRange), int(len(weeklyRange) * test_size))
+        weeklyRangeFiltered = []
+        for index in weeklyIndex:
+            if index < weeklyIndex.max():
+                weeklyRangeFiltered.append(weeklyRange[int(index)])
+            else:
+                weeklyRangeFiltered.append(weeklyRange[int(index) - 1])
+
+        # Create the week Adding 7 days (sundayW0-sundayW1)
+        ranges = []
+        if len(weeklyRangeFiltered) > 1:
+            for wk in weeklyRangeFiltered:
+                ranges.append([wk, wk + pd.Timedelta(days=7)])
+        else:
+            # Implement the test size with only one week of data
+            ranges.append([weeklyRangeFiltered[0], weeklyRangeFiltered[0] + pd.Timedelta(days=7)])
+
+        # Now, isolate the train and test set
+        testSet = []
+        for dateIndexCouple in ranges:
+            # Isolated a couple of date indexes
+            test_part = dataset[(pd.to_datetime(dataset['date']) >= dateIndexCouple[0]) & (pd.to_datetime(dataset['date']) <= dateIndexCouple[1])]
+            testSet.append(test_part)
+        testSet = pd.concat([df for df in testSet], axis = 0).reset_index(drop=True)
+
+        # Generate the train set by exclusion
+        trainSet = dataset[~dataset['date'].isin(testSet['date'])].reset_index(drop=True)
+
+        # little bit of logging
+        print('Time Split - Calculated % train size: ' + str(round(len(trainSet[trainSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3)))
+        print('Time Split - Calculated % test size: ' + str(round(len(testSet[testSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3)))
+
+        return trainSet, testSet
+
     def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True,
                            nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform'):
 
@@ -186,8 +226,9 @@ class DataPreparation:
 
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         if time_split:
-            trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
-            testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
+            trainSet, testSet = self.timeSplit(dataset=dataset, test_size=test_size)
+            #trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
+            #testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
 
         # Apply the train and test grid to the geo data, accordingly
         if space_split:
@@ -196,7 +237,7 @@ class DataPreparation:
             grid_train['key'] = grid_train['lat'].astype(str) + '_' + grid_train['lng'].astype(str)
             grid_test['key'] = grid_test['lat'].astype(str) + '_' + grid_test['lng'].astype(str)
 
-            # TEST:
+            # TEST: exclude from train set the values present in test set (it may happen that some observation are common)
             grid_train = grid_train[~grid_train['key'].isin(grid_test['key'])].reset_index(drop=True)
 
             trainSet = trainSet[(trainSet['key'].isin(grid_train['key']))].reset_index(drop=True)

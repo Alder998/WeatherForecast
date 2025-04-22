@@ -220,9 +220,6 @@ class LocalizedWeather:
         # Gest the last n-observations from data
         cityCoord_real, coords_real = self.getLastObservationsFromCityAndVariable (grid_step=0.22, city=city)
 
-        print(cityCoord['date'].min())
-        print(cityCoord_real['date'].max())
-
         # concatenate with the predictions
         allCityCoords = pd.concat([cityCoord_real[['date', predictedVariable]], cityCoord[['date', predictedVariable]]], axis = 0).reset_index(drop=True)
         allCityCoords = allCityCoords.sort_values(by='date', ascending=True).reset_index(drop=True)
