@@ -7,10 +7,10 @@ import ModelService as model
 variableToPredict = 'temperature'
 start_date = '2025-01-01'
 end_date = '2025-04-19'
-trainingEpochs = 20
+trainingEpochs = 30
 timeSplit = True
-spaceSplit = False
-nearPointsPerGroup = 15
+spaceSplit = True
+nearPointsPerGroup = 20
 
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
               datetime.strptime(start_date, '%Y-%m-%d')).days

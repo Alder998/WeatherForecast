@@ -74,22 +74,25 @@ class DataPreparation:
 
         return newSizeData
 
-    def getSpaceSplitNearPoints(self, test_size, nearPointsPerGroup = 4, plot_space_split = False):
+    def getSpaceSplitNearPoints(self, gridPoints, test_size, nearPointsPerGroup = 4, plot_space_split = False):
 
         # For the geospatial purpose, we need to implement a special Train-Test setting
         # First, apply the Geo split (test: try to take 1 each 3 or 4 observations)
-        # Take data from Time Grid (gridPoints_ + selected grid)
-        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
 
         # Space division: there is the need to find, set, model the test selecting NEAR POINTS
-        pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]) - nearPointsPerGroup,
-                                    int(len(gridPoints[gridPoints.columns[0]]) * test_size / nearPointsPerGroup))
+        if nearPointsPerGroup != 1:
+            pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]) - nearPointsPerGroup,
+                                        int(len(gridPoints[gridPoints.columns[0]]) * test_size / nearPointsPerGroup))
+        else:
+            pointDivision = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
+                                        int(len(gridPoints[gridPoints.columns[0]]) * test_size))
 
         # Make all the values inside the array integers
         pointDivision = [int(point) for point in pointDivision]
 
-        for addingPoint in range(1, nearPointsPerGroup + 1):
-            pointDivision.extend([x + addingPoint for x in pointDivision])
+        if nearPointsPerGroup != 1:
+            for addingPoint in range(1, nearPointsPerGroup + 1):
+                pointDivision.extend([x + addingPoint for x in pointDivision])
 
         # TEMPORARY: "Block" the division size to the maximum available
         pointDivision = pointDivision[:int(len(gridPoints[gridPoints.columns[0]]) * (test_size))]
@@ -97,10 +100,6 @@ class DataPreparation:
         # Filter for data Points inside and outside the Grid
         grid_train = gridPoints[~gridPoints.index.isin(pointDivision)].reset_index(drop=True)
         grid_test = gridPoints[gridPoints.index.isin(pointDivision)].reset_index(drop=True)
-
-        # exclude from the train the test observation on the case that the filter has not worked
-        #grid_train = grid_train[(~grid_train['lat'].isin(grid_test['lat'])) |
-        #                        (~grid_train['lng'].isin(grid_test['lng']))].reset_index(drop=True)
 
         if plot_space_split:
             plt.figure(figsize=(7, 7))
@@ -136,9 +135,7 @@ class DataPreparation:
 
         return grid_train, grid_test
 
-    def getSpaceSplitByRadius(self, test_size, radius_km, nearPointsPerGroup, plot_space_split=False):
-
-        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
+    def getSpaceSplitByRadius(self, gridPoints, test_size, radius_km, nearPointsPerGroup, plot_space_split=False):
 
         points = np.linspace(0, len(gridPoints[gridPoints.columns[0]]),
                              int((len(gridPoints[gridPoints.columns[0]]) * test_size) / nearPointsPerGroup))
@@ -151,8 +148,8 @@ class DataPreparation:
                                                          radius_km=radius_km)
             grid_train_r.append(tr_r)
             grid_test_r.append(te_r)
-        grid_train_r = pd.concat([df for df in grid_train_r], axis=0).reset_index(drop=True)
-        grid_test_r = pd.concat([df for df in grid_test_r], axis=0).reset_index(drop=True)
+        grid_train_r = pd.concat([df for df in grid_train_r], axis=0).drop_duplicates().reset_index(drop=True)
+        grid_test_r = pd.concat([df for df in grid_test_r], axis=0).drop_duplicates().reset_index(drop=True)
 
         if plot_space_split:
             plt.figure(figsize=(7, 7))
@@ -199,25 +196,32 @@ class DataPreparation:
         trainSet = dataset[~dataset['date'].isin(testSet['date'])].reset_index(drop=True)
 
         # little bit of logging
-        print('Time Split - Calculated % train size: ' + str(round(len(trainSet[trainSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3)))
-        print('Time Split - Calculated % test size: ' + str(round(len(testSet[testSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3)))
+        print('Time Split - Calculated % train size: ' +
+              str(round(len(trainSet[trainSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3) * 100) + '%')
+        print('Time Split - Calculated % test size: ' +
+              str(round(len(testSet[testSet.columns[0]]) / len(dataset[dataset.columns[0]]), 3) * 100) + '%')
 
         return trainSet, testSet
 
     def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True,
                            nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform'):
 
-        # check that space OR time split has been filled as True
         if (space_split == False) & (time_split == False):
             raise Exception ('Error! At least one split must be filled!')
 
         # Space Split
+        # First, get the data for space split
+        gridPoints = self.dataClass().getDataFromTable("gridPoints_" + str(self.grid_step)).drop_duplicates().reset_index(drop =True)
         if space_split_method == 'uniform':
-            grid_train, grid_test = self.getSpaceSplitNearPoints(test_size=test_size, nearPointsPerGroup = nearPointsPerGroup,
+            grid_train, grid_test = self.getSpaceSplitNearPoints(gridPoints = gridPoints, test_size=test_size,
+                                                                 nearPointsPerGroup=nearPointsPerGroup,
                                                                  plot_space_split=plot_space_split)
         elif space_split_method == 'radius':
-            grid_train, grid_test = self.getSpaceSplitByRadius(test_size=test_size, radius_km=60, nearPointsPerGroup=nearPointsPerGroup,
+            grid_train, grid_test = self.getSpaceSplitByRadius(gridPoints = gridPoints, test_size=test_size,
+                                                               radius_km=60, nearPointsPerGroup=nearPointsPerGroup,
                                                                plot_space_split = plot_space_split)
+        else:
+            raise Exception('Space Split Method not currently Implemented!')
 
         # Remove duplicates from original Dataset, and sort from the least recent to the most recent
         dataset = dataset.drop_duplicates(subset=['date', 'latitude', 'longitude']).reset_index(drop=True)
@@ -227,8 +231,6 @@ class DataPreparation:
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         if time_split:
             trainSet, testSet = self.timeSplit(dataset=dataset, test_size=test_size)
-            #trainSet = dataset[0:int(len(dataset) * (1-test_size))].reset_index(drop=True)
-            #testSet = dataset[int(len(dataset) * (1-test_size)):len(dataset)].reset_index(drop=True)
 
         # Apply the train and test grid to the geo data, accordingly
         if space_split:
@@ -237,9 +239,16 @@ class DataPreparation:
             grid_train['key'] = grid_train['lat'].astype(str) + '_' + grid_train['lng'].astype(str)
             grid_test['key'] = grid_test['lat'].astype(str) + '_' + grid_test['lng'].astype(str)
 
-            # TEST: exclude from train set the values present in test set (it may happen that some observation are common)
+            # exclude from train set the values present in test set (it may happen that some observation are common)
             grid_train = grid_train[~grid_train['key'].isin(grid_test['key'])].reset_index(drop=True)
 
+            # Logging
+            print('Space Split - Calculated % train size: ' +
+                str(round(len(grid_train[grid_train.columns[0]]) / len(gridPoints[gridPoints.columns[0]]), 3) * 100) + '%')
+            print('Space Split - Calculated % test size: ' +
+                str(round(len(grid_test[grid_test.columns[0]]) / len(gridPoints[gridPoints.columns[0]]), 3) * 100) + '%')
+
+            # If both train and test split flag have been activated, then this is the final split
             trainSet = trainSet[(trainSet['key'].isin(grid_train['key']))].reset_index(drop=True)
             testSet = testSet[(testSet['key'].isin(grid_test['key']))].reset_index(drop=True)
 
@@ -260,6 +269,12 @@ class DataPreparation:
         if (test_set[1].shape[0] % 2) != 0:
             test_set = [x[:-1, :] for x in test_set]
             test_labels = [x[:-1, :] for x in test_labels]
+
+        # Logging
+        print('Time-Space Split - Calculated % train size: ' +
+           str(round(((len(train_set) - 2) * (train_set[1].shape[0])) / len(dataset[dataset.columns[0]]), 3) * 100) + '%')
+        print('Time-Space Split - Calculated % test size: ' +
+           str(round((((len(test_set) - 2) * (test_set[1].shape[0])) / len(dataset[dataset.columns[0]])) * 100, 3)) + '%')
 
         return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
