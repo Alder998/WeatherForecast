@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
-
+from collections import Counter
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from geopy.distance import geodesic
@@ -73,6 +73,21 @@ class DataPreparation:
             newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(['year', 'month', 'day', 'hour'])]
 
         return newSizeData
+
+    # Utils-like method to get all same-shape arrays
+    def cleanTrainAndTestSet (self, set):
+
+        # Remove the data that are not in the desired shape
+        # Extract the shapes
+        shapes = [arr.shape for arr in set]
+        # Count the shapes
+        shape_counts = Counter(shapes)
+        # find the most frequent shape
+        most_common_shape = shape_counts.most_common(1)[0]
+        # Now, filter
+        newSet = [arr for arr in set if arr.shape == most_common_shape[0]]
+
+        return newSet
 
     def getSpaceSplitNearPoints(self, gridPoints, test_size, nearPointsPerGroup = 4, plot_space_split = False):
 
@@ -190,10 +205,10 @@ class DataPreparation:
             # Isolated a couple of date indexes
             test_part = dataset[(pd.to_datetime(dataset['date']) >= dateIndexCouple[0]) & (pd.to_datetime(dataset['date']) <= dateIndexCouple[1])]
             testSet.append(test_part)
-        testSet = pd.concat([df for df in testSet], axis = 0).reset_index(drop=True)
+        testSet = pd.concat([df for df in testSet], axis = 0)#.reset_index(drop=True)
 
         # Generate the train set by exclusion
-        trainSet = dataset[~dataset['date'].isin(testSet['date'])].reset_index(drop=True)
+        trainSet = dataset[~dataset['date'].isin(testSet['date'])]#.reset_index(drop=True)
 
         # little bit of logging
         print('Time Split - Calculated % train size: ' +
@@ -230,12 +245,12 @@ class DataPreparation:
 
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         if time_split:
-            trainSet, testSet = self.timeSplit(dataset=dataset, test_size=test_size)
+            trainSet_time, testSet_time = self.timeSplit(dataset=dataset, test_size=test_size)
 
         # Apply the train and test grid to the geo data, accordingly
         if space_split:
-            trainSet['key'] = trainSet['latitude'].astype(str) + '_' + trainSet['longitude'].astype(str)
-            testSet['key'] = testSet['latitude'].astype(str) + '_' + testSet['longitude'].astype(str)
+            # Create the key on general dataset
+            dataset['key'] = dataset['latitude'].astype(str) + '_' + dataset['longitude'].astype(str)
             grid_train['key'] = grid_train['lat'].astype(str) + '_' + grid_train['lng'].astype(str)
             grid_test['key'] = grid_test['lat'].astype(str) + '_' + grid_test['lng'].astype(str)
 
@@ -249,16 +264,30 @@ class DataPreparation:
                 str(round(len(grid_test[grid_test.columns[0]]) / len(gridPoints[gridPoints.columns[0]]), 3) * 100) + '%')
 
             # If both train and test split flag have been activated, then this is the final split
-            trainSet = trainSet[(trainSet['key'].isin(grid_train['key']))].reset_index(drop=True)
-            testSet = testSet[(testSet['key'].isin(grid_test['key']))].reset_index(drop=True)
+            trainSet_space = dataset[(dataset['key'].isin(grid_train['key']))]#.reset_index(drop=True)
+            testSet_space = dataset[(dataset['key'].isin(grid_test['key']))]#.reset_index(drop=True)
+
+        # General time-Space split
+        testSet = pd.concat([testSet_time, testSet_space], axis = 0).drop_duplicates(subset = ['latitude','longitude','date'])#.reset_index(drop=True)
+        trainSet = dataset.loc[~dataset.index.isin(testSet.index)].reset_index(drop = True)
+
+        # Logging
+        print('Time-Space Split - Calculated % train size: ' +
+           str(round((len(trainSet) - 2) / len(dataset[dataset.columns[0]]) * 100, 1)) + '%')
+        print('Time-Space Split - Calculated % test size: ' +
+           str(round((len(testSet) - 2) / len(dataset[dataset.columns[0]]) * 100, 1)) + '%')
 
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False)
         test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False)
-        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict],
-                                              labels = True)
-        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict],
-                                             labels = True)
+        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True)
+        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True)
+
+        # Remove the data that are not in the desired shape
+        train_set = self.cleanTrainAndTestSet(train_set)
+        train_labels = self.cleanTrainAndTestSet(train_labels)
+        test_set = self.cleanTrainAndTestSet(test_set)
+        test_labels = self.cleanTrainAndTestSet(test_labels)
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
         # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
@@ -269,12 +298,6 @@ class DataPreparation:
         if (test_set[1].shape[0] % 2) != 0:
             test_set = [x[:-1, :] for x in test_set]
             test_labels = [x[:-1, :] for x in test_labels]
-
-        # Logging
-        print('Time-Space Split - Calculated % train size: ' +
-           str(round(((len(train_set) - 2) * (train_set[1].shape[0])) / len(dataset[dataset.columns[0]]), 3) * 100) + '%')
-        print('Time-Space Split - Calculated % test size: ' +
-           str(round((((len(test_set) - 2) * (test_set[1].shape[0])) / len(dataset[dataset.columns[0]])) * 100, 3)) + '%')
 
         return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
 
