@@ -246,6 +246,8 @@ class DataPreparation:
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         if time_split:
             trainSet_time, testSet_time = self.timeSplit(dataset=dataset, test_size=test_size)
+            if not space_split:
+                trainTest, testSet = trainSet_time, testSet_time
 
         # Apply the train and test grid to the geo data, accordingly
         if space_split:
@@ -264,12 +266,27 @@ class DataPreparation:
                 str(round(len(grid_test[grid_test.columns[0]]) / len(gridPoints[gridPoints.columns[0]]), 3) * 100) + '%')
 
             # If both train and test split flag have been activated, then this is the final split
-            trainSet_space = dataset[(dataset['key'].isin(grid_train['key']))]#.reset_index(drop=True)
             testSet_space = dataset[(dataset['key'].isin(grid_test['key']))]#.reset_index(drop=True)
 
-        # General time-Space split
-        testSet = pd.concat([testSet_time, testSet_space], axis = 0).drop_duplicates(subset = ['latitude','longitude','date'])#.reset_index(drop=True)
-        trainSet = dataset.loc[~dataset.index.isin(testSet.index)].reset_index(drop = True)
+            if not time_split:
+                testSet = dataset[(dataset['key'].isin(grid_test['key']))].reset_index(drop=True)
+                trainSet = dataset[(dataset['key'].isin(grid_train['key']))].reset_index(drop=True)
+
+        if time_split and space_split:
+            # General time-Space split - it is necessary to create two masks
+            # Time mask
+            mask_time = dataset['date'].isin(testSet_time['date'])
+            # Space mask
+            mask_space = (dataset['key'].isin(testSet_space['key']))
+
+            mask_combined = mask_time | mask_space
+            testSet = dataset[mask_combined]
+
+            #testSet = pd.concat([testSet_time, testSet_space], axis = 0).drop_duplicates(subset = ['latitude','longitude','date'])#.reset_index(drop=True)
+            #trainSet = dataset.loc[~dataset.index.isin(testSet.index)].reset_index(drop = True)
+            # Filter the observations for the dates present in the train set and test set
+            trainSet = dataset[~dataset.index.isin(testSet.index)]
+            #testSet = testSet[testSet['date'].isin(testSet_time['date'])].reset_index(drop = True)
 
         # Logging
         print('Time-Space Split - Calculated % train size: ' +
@@ -290,8 +307,7 @@ class DataPreparation:
         test_labels = self.cleanTrainAndTestSet(test_labels)
 
         # Each one of the sets has a snapshot of the geographic area according to the time frame
-        # REVISE: Exclude the first and the last observation, to avoid to have different dimensions of data
-        # REVISE 2: Make test and train set EVEN to make the Convolutional Model simpler and more flexible
+        # REVISE: Make test and train set EVEN to make the Convolutional Model simpler and more flexible
         if (train_set[1].shape[0] % 2) != 0:
             train_set = [x[:-1, :] for x in train_set]
             train_labels = [x[:-1, :] for x in train_labels]
@@ -299,7 +315,7 @@ class DataPreparation:
             test_set = [x[:-1, :] for x in test_set]
             test_labels = [x[:-1, :] for x in test_labels]
 
-        return train_set[1:-1], test_set[1:-1], train_labels[1:-1], test_labels[1:-1]
+        return train_set, test_set, train_labels, test_labels
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True,
                          time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform'):

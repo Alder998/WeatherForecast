@@ -5,12 +5,13 @@ import ModelService as model
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-01-01'
-end_date = '2025-04-19'
-trainingEpochs = 30
+start_date = '2024-12-01'
+end_date = '2025-04-29'
+trainingEpochs = 50
 timeSplit = True
 spaceSplit = True
 nearPointsPerGroup = 20
+test_size = 0.20
 
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
               datetime.strptime(start_date, '%Y-%m-%d')).days
@@ -31,7 +32,7 @@ else:
 train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.22).getDataForModel(
                                                    start_date=start_date,
                                                    end_date=end_date,
-                                                   test_size=0.30,
+                                                   test_size=test_size,
                                                    predictiveVariables=['year', 'month', 'day', 'hour', 'latitude',
                                                                         'longitude'],
                                                    variableToPredict=variableToPredict,
