@@ -131,6 +131,64 @@ class ModelService:
 
         return model
 
+    # Function to continue model training from a saved model, and save it again
+    def continueModelTraining (self, modelName, newTrainingEpochs, standardize = True):
+
+        # Extract the number of epochs
+        existingEpochs = modelName.split('_')[-1].replace('Epochs', '')
+        print('Existing Epochs: ' + existingEpochs)
+        newEpochs = int(existingEpochs) + newTrainingEpochs
+        # Now, modify the model name
+        newEpochsInModelName = str(newEpochs) + 'Epochs'
+        newModelName = modelName.split('_')[-1:].append(newEpochsInModelName)
+        print('New Model Name: ' + newModelName)
+
+        # Process the data
+        # Adapt data for Model
+        train_set = np.stack(self.train_set, axis=0)
+        test_set = np.stack(self.test_set, axis=0)
+        train_labels = np.stack(self.train_labels, axis=0)
+        test_labels = np.stack(self.test_labels, axis=0)
+
+        if standardize:
+            # Standardize the data
+            train_set = self.standardizeData(train_set)
+            # Save the scaler only for train (test set may have fewer observations)
+            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=modelName)
+            test_set = self.standardizeData(test_set)
+            test_labels = self.standardizeData(test_labels)
+
+        # Make the array numeric
+        train_set = np.array(train_set, dtype=np.float32)
+        train_labels = np.array(train_labels, dtype=np.float32)
+        test_set = np.array(test_set, dtype=np.float32)
+        test_labels = np.array(test_labels, dtype=np.float32)
+
+        print('Train Set shape:', train_set.shape)
+        print('Train Labels shape:', train_labels.shape)
+        print('Test Set shape:', test_set.shape)
+        print('Test Labels shape:', test_labels.shape)
+
+        # Load stored model
+        existingModel = tf.keras.models.load_model(newModelName + ".h5")
+
+        # Continue the model training
+        existingModel.fit(train_set, train_labels, epochs=newTrainingEpochs)
+
+        # Evaluate on Test set
+        test_loss, test_acc = existingModel.evaluate(test_set, test_labels, verbose=2)
+        print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
+
+        # Save the model il .h5 format
+        existingModel.save(modelName + '.h5')
+        print('Model Saved Correctly!')
+
+        return existingModel
+
+
+
+
+
 
 
 

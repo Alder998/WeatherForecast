@@ -5,7 +5,7 @@ from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
 target = "temperature"
-classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_149d_50Epochs',
+classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_484d_12Epochs',
                                   grid_step=0.22,
                                   start_date="2025-04-28", # Must be ALWAYS the day before the latest observation
                                   prediction_steps=96)
