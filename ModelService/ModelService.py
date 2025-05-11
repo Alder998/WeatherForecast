@@ -140,7 +140,10 @@ class ModelService:
         newEpochs = int(existingEpochs) + newTrainingEpochs
         # Now, modify the model name
         newEpochsInModelName = str(newEpochs) + 'Epochs'
-        newModelName = modelName.split('_')[-1:].append(newEpochsInModelName)
+        newModelName = modelName.split('_')[:-1]
+        newModelName.append(newEpochsInModelName)
+        # Join the name
+        newModelName = '_'.join(newModelName)
         print('New Model Name: ' + newModelName)
 
         # Process the data
@@ -170,7 +173,11 @@ class ModelService:
         print('Test Labels shape:', test_labels.shape)
 
         # Load stored model
-        existingModel = tf.keras.models.load_model(newModelName + ".h5")
+        existingModel = tf.keras.models.load_model(modelName + ".h5", compile=False)
+
+        existingModel.compile(optimizer='adam',
+                      loss=tf.keras.losses.MeanSquaredError(),
+                      metrics=['mse'])
 
         # Continue the model training
         existingModel.fit(train_set, train_labels, epochs=newTrainingEpochs)
@@ -180,7 +187,7 @@ class ModelService:
         print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
 
         # Save the model il .h5 format
-        existingModel.save(modelName + '.h5')
+        existingModel.save(newModelName + '.h5')
         print('Model Saved Correctly!')
 
         return existingModel

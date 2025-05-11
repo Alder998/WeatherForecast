@@ -5,10 +5,10 @@ from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
 target = "temperature"
-classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_484d_12Epochs',
+classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_818d_5Epochs',
                                   grid_step=0.22,
                                   start_date="2025-04-28", # Must be ALWAYS the day before the latest observation
-                                  prediction_steps=96)
+                                  prediction_steps=120)
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None)
 
 # Report Part
@@ -21,6 +21,6 @@ animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dat
                                                                 show=True)
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Milano',
+                                                                                     city = 'Roma',
                                                                                      predictedVariable = target,
                                                                                      confidence_levels=False)

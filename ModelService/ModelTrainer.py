@@ -13,7 +13,7 @@ spaceSplit = True
 nearPointsPerGroup = 20
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = False
+continue_training = True
 
 # Set the model name
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
@@ -47,7 +47,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split=spaceSplit,
                                                    nearPointsPerGroup=nearPointsPerGroup,
                                                    space_split_method = 'radius',
-                                                   plot_space_split=True)
+                                                   plot_space_split=False)
 
 if not continue_training:
 
@@ -66,4 +66,4 @@ if not continue_training:
 else:
     # Load model, continue training
     model.ModelService(train_set, test_set, train_labels, test_labels).continueModelTraining(modelName=modelName,
-                                                                                             newTrainingEpochs=10)
+                                                                                             newTrainingEpochs=5)
