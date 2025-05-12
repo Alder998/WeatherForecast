@@ -101,6 +101,40 @@ class ModelService:
                 # Finally, add the layer to the model
                 model.add(layer)
 
+        # Add the Conv2DLSTM layer, if needed
+        if len(modelStructure['Conv2DLSTM']) > 0:
+            for l in range(len(modelStructure['LSTM'])):
+                units = modelStructure['LSTM'][l]
+                if l == 0:
+                    layer = tf.keras.layers.ConvLSTM2D(
+                        filters=units,
+                        kernel_size=(3, 3),
+                        strides=(1, 1),
+                        padding="same",
+                        activation="tanh",
+                        return_sequences=True,
+                        input_shape=(None, train_set.shape[2]))
+                else:
+                    if l == len(modelStructure['Conv2DLSTM']) - 1:
+                        layer = tf.keras.layers.ConvLSTM2D(
+                            filters=units,
+                            kernel_size=(3, 3),
+                            strides=(1, 1),
+                            padding="same",
+                            activation="tanh",
+                            return_sequences=False)
+                    else:
+                        layer = tf.keras.layers.ConvLSTM2D(
+                            filters=units,
+                            kernel_size=(3, 3),
+                            strides=(1, 1),
+                            padding="same",
+                            activation="tanh",
+                            return_sequences=True)
+                # Add the dropout layer
+                model.add(tf.keras.layers.Dropout(dropout_LSTM))
+                model.add(layer)
+
         # then, add the FF layer
         for l in range(len(modelStructure['FF'])):
             unitsFF = modelStructure['FF'][l]
@@ -157,7 +191,7 @@ class ModelService:
             # Standardize the data
             train_set = self.standardizeData(train_set)
             # Save the scaler only for train (test set may have fewer observations)
-            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=modelName)
+            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=newModelName)
             test_set = self.standardizeData(test_set)
             test_labels = self.standardizeData(test_labels)
 

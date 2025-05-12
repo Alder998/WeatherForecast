@@ -92,7 +92,7 @@ class PredictionService:
         return predictionSet,rawPredictionSet
 
     # Class to load the model and run the predictions
-    def NNPredict (self, confidence_levels=False, n_iter=None):
+    def NNPredict (self, loaded_scaler=None, confidence_levels=False, n_iter=None):
 
         # Load the NN Model
         model = tf.keras.models.load_model(self.model + '.h5')
@@ -115,7 +115,10 @@ class PredictionService:
             predictions = model.predict(predictionSet)
 
             # Create the DataFrame for the prediction
-            targetScaler = joblib.load('scaler_labels_' + self.model + '.pkl')
+            if loaded_scaler != None:
+                targetScaler = joblib.load('scaler_labels_' + loaded_scaler + '.pkl')
+            else:
+                targetScaler = joblib.load('scaler_labels_' + self.model + '.pkl')
 
             # Reshape to apply the inverse transform
             predictions_standardized_reshaped = predictions.reshape(-1, 1)  # (96 * 716, 1)
