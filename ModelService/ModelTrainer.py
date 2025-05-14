@@ -5,15 +5,15 @@ import ModelService as model
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-01-01'
+start_date = '2023-04-01'
 end_date = '2025-04-29'
-trainingEpochs = 30
+trainingEpochs = 10
 timeSplit = True
 spaceSplit = True
 nearPointsPerGroup = 20
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = False
+continue_training = True
 
 # Set the model name
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -
@@ -53,10 +53,10 @@ if not continue_training:
 
     # Train the Model
     # Model Structure
-    structure = {'FF': [500, 500, 500, 500, 500],
+    structure = {'FF': [500, 500],
                  'LSTM': [],
                  'Conv': [],
-                 'Conv2DLSTM': [64, 64, 64, 64]}
+                 'Conv2DLSTM': [64, 64, 64, 64, 64, 64]}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
                                                                                dropout_FF=0.20,
@@ -67,4 +67,4 @@ if not continue_training:
 else:
     # Load model, continue training
     model.ModelService(train_set, test_set, train_labels, test_labels).continueModelTraining(modelName=modelName,
-                                                                                             newTrainingEpochs=2)
+                                                                                             newTrainingEpochs=5)

@@ -1,4 +1,5 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
+import os
 
 import numpy as np
 from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape, UpSampling1D
@@ -107,30 +108,18 @@ class ModelService:
                 units = modelStructure['LSTM'][l]
                 if l == 0:
                     layer = tf.keras.layers.ConvLSTM2D(
-                        filters=units,
-                        kernel_size=(3, 3),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="tanh",
-                        return_sequences=True,
+                        filters=units, kernel_size=(3, 3), strides=(1, 1),
+                        padding="same", activation="tanh", return_sequences=True,
                         input_shape=(None, train_set.shape[2]))
                 else:
                     if l == len(modelStructure['Conv2DLSTM']) - 1:
                         layer = tf.keras.layers.ConvLSTM2D(
-                            filters=units,
-                            kernel_size=(3, 3),
-                            strides=(1, 1),
-                            padding="same",
-                            activation="tanh",
-                            return_sequences=False)
+                            filters=units, kernel_size=(3, 3), strides=(1, 1),
+                            padding="same", activation="tanh", return_sequences=False)
                     else:
                         layer = tf.keras.layers.ConvLSTM2D(
-                            filters=units,
-                            kernel_size=(3, 3),
-                            strides=(1, 1),
-                            padding="same",
-                            activation="tanh",
-                            return_sequences=True)
+                            filters=units, kernel_size=(3, 3), strides=(1, 1),
+                            padding="same", activation="tanh", return_sequences=True)
                 # Add the dropout layer
                 model.add(tf.keras.layers.Dropout(dropout_LSTM))
                 model.add(layer)
@@ -223,6 +212,11 @@ class ModelService:
         # Save the model il .h5 format
         existingModel.save(newModelName + '.h5')
         print('Model Saved Correctly!')
+
+        # Now, delete the previous model, and the relative scaler
+        os.remove(modelName + ".h5")
+        os.remove('scaler_labels_' + modelName + ".pkl")
+        print('The previous model has been removed.')
 
         return existingModel
 
