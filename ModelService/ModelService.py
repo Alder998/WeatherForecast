@@ -2,7 +2,7 @@
 import os
 
 import numpy as np
-from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Flatten, Reshape, UpSampling1D
+from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Conv2D, Flatten, Reshape, UpSampling1D, UpSampling2D, MaxPooling2D
 from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
@@ -70,13 +70,31 @@ class ModelService:
         model = tf.keras.Sequential()
 
         # Start with the CNN, to understand the space dependencies
-        if len(modelStructure['Conv']) > 0:
-            for c in range(len(modelStructure['Conv'])):
-                units = modelStructure['Conv'][c]
+        if len(modelStructure['Conv1D']) > 0:
+            for c in range(len(modelStructure['Conv1D'])):
+                units = modelStructure['Conv1D'][c]
                 model.add(Conv1D(filters=units, kernel_size=3, activation='relu', padding='same'))
                 model.add(MaxPooling1D(pool_size=2, padding='same'))
                 # Upsampling to preserve the dimensionality
                 model.add(UpSampling1D(size=2))
+
+        # Add the Con2D layer
+        if len(modelStructure['Conv2D']) > 0:
+            train_set = tf.expand_dims(train_set, axis=-1)  # (1368, 604, 6, 1)
+            train_labels = tf.expand_dims(train_labels, axis=-1)  # (1368, 604, 1, 1)
+            for c in range(len(modelStructure['Conv2D'])):
+                units = modelStructure['Conv2D'][c]
+                if c == 0:
+                    # (1368, 604, 6) must be input_shape=(604, 6, 1) or input_shape=(604, 1, 6)
+                    model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
+                                    padding="same", activation="tanh",
+                                    input_shape=(train_set.shape[1], train_set.shape[2], 1)))
+                else:
+                    model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
+                                    padding="same", activation="tanh"))
+                model.add(MaxPooling2D(pool_size=2, padding='same'))
+                # Upsampling to preserve the dimensionality
+                model.add(UpSampling2D(size=2))
 
         # Proceed with the Recurrent Part with LSTM layers
         if len(modelStructure['LSTM']) > 0:
