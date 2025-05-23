@@ -2,7 +2,7 @@
 import math
 import os
 from datetime import datetime
-
+from pvlib.solarposition import get_solarposition
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
@@ -46,36 +46,14 @@ class DataPreparation:
         return dataFromQuery.drop(columns=['row_number'])
 
     # Utils-Like Function to compute the sun inclination given month, day, year, hour + coordinates
-    def solar_inclination(self, year, month, day, hour, minute, second, latitude, longitude, timezone_offset=0):
-        # Data e ora
-        date = datetime(year, month, day, hour, minute, second)
-        day_of_year = date.timetuple().tm_yday
+    def solar_inclination(self, row):
+        time = pd.to_datetime(row['date'])
+        lat = row['latitude']
+        lng = row['longitude']
+        solpos = get_solarposition(time, latitude=lat, longitude=lng)
 
-        # EOT Equation
-        B = (360 / 365) * (day_of_year - 81)
-        EOT = 9.87 * math.sin(math.radians(2 * B)) - 7.53 * math.cos(math.radians(B)) - 1.5 * math.sin(math.radians(B))
-
-        # Solar Time
-        LST = hour + minute / 60 + second / 3600 + (4 * longitude + EOT) / 60 - timezone_offset
-
-        # Hourly angle
-        H = 15 * (LST - 12)  # in gradi
-
-        # Solar Angle
-        delta = 23.44 * math.sin(math.radians((360 / 365) * (284 + day_of_year)))
-
-        # latitude in radiants
-        phi = math.radians(latitude)
-
-        # Solar Angle
-        alpha = math.degrees(math.asin(
-            math.sin(phi) * math.sin(math.radians(delta)) +
-            math.cos(phi) * math.cos(math.radians(delta)) * math.cos(math.radians(H))
-        ))
-        # Zenit Angle
-        theta_z = 90 - alpha
-
-        return theta_z
+        # different choices can be made
+        return solpos['apparent_elevation'].values[0]
 
     def adaptDataForModel (self, dataFrame, predictiveVariables, labels):
 
@@ -96,15 +74,9 @@ class DataPreparation:
         datasetFinal['hour'] = pd.to_datetime(datasetFinal['date']).dt.hour
 
         # Now, compute the solar Angle
-        print('computing solar angle...')
-        solarAngleForDataFrame = []
-        for i in datasetFinal.index:
-            solarAngle = self.solar_inclination(year=datasetFinal['year'][i], month=datasetFinal['month'][i],
-                                                              day=datasetFinal['day'][i], hour=datasetFinal['hour'][i],
-                                                              minute=0, second=0, latitude=datasetFinal['latitude'][i],
-                                                              longitude=datasetFinal['longitude'][i], timezone_offset=0)
-            solarAngleForDataFrame.append(solarAngle)
-        datasetFinal['solar angle'] = pd.DataFrame(solarAngleForDataFrame).round(0).set_axis(['solar angle'], axis = 1)
+        if 'solar angle' in predictiveVariables:
+            print('computing solar angle...')
+            datasetFinal['solar_angle'] = datasetFinal.apply(self.solar_inclination, axis=1)
 
         # Isolate the columns of interest
         datasetFinal = datasetFinal[predictiveVariables]

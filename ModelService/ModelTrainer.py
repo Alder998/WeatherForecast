@@ -5,13 +5,13 @@ import ModelService as model
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-03-01' #'2023-04-01'
+start_date = '2023-04-01'
 end_date = '2025-04-29'
-trainingEpochs = 30
+trainingEpochs = 10
 timeSplit = True
 spaceSplit = True
-nearPointsPerGroup = 20
-test_size = 0.20
+nearPointsPerGroup = 25
+test_size = 0.30
 # flag to take an existing Model, and continue the training
 continue_training = False
 
@@ -40,7 +40,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['year', 'month', 'day', 'hour', 'solar angle',
+                                                   predictiveVariables=['year', 'month', 'day', 'hour',
                                                                         'latitude', 'longitude'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
@@ -54,14 +54,14 @@ if not continue_training:
     # Train the Model
     # Model Structure
     structure = {'FF': [500, 500, 500],
-                 'LSTM': [],
-                 'Conv1D': [],
+                 'LSTM': [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
+                 'Conv1D': [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
                  'Conv2D': [],
-                 'Conv2DLSTM': [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64]}
+                 'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
-                                                                               dropout_FF=0.20,
-                                                                               dropout_LSTM=0.20,
+                                                                               dropout_FF=0.30,
+                                                                               dropout_LSTM=0.30,
                                                                                standardize=True,
                                                                                return_seq_last_rec_layer=False,
                                                                                save_name=modelName)
