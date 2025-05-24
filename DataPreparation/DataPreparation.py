@@ -2,6 +2,7 @@
 import math
 import os
 from datetime import datetime
+from pvlib import solarposition
 from pvlib.solarposition import get_solarposition
 import pandas as pd
 import numpy as np
@@ -55,6 +56,30 @@ class DataPreparation:
         # different choices can be made
         return solpos['apparent_elevation'].values[0]
 
+    # utils-like function to compute the solar angle in a faster way, in order to save computation and time
+    def computeSolarInclinationFromDataFrame (self, dataframe):
+        # For assumption, we can divide the dataFrame in 716 different single coordinates, that has been gathered in a
+        # Column named "key"
+        # Iterate for single key
+        datasetWithSolarAngle = []
+        for i, singleCoord in enumerate(dataframe['key'].unique()):
+            print('Computing solar angle: ' + str(round((i / len(dataframe['key'].unique())) * 100, 2)) + '%')
+            datasetFiltered = dataframe[dataframe['key'] == singleCoord].reset_index(drop=True)
+            # df['lat'] + '_' + df['lng']
+            datasetFiltered = datasetFiltered.copy()
+            datasetFiltered['solar angle'] = solarposition.get_solarposition(datasetFiltered['date'],
+                                             latitude=float(singleCoord.split('_')[0]),
+                                             longitude=float(singleCoord.split('_')[1]))['apparent_elevation'].reset_index(drop = True)
+            datasetWithSolarAngle.append(datasetFiltered)
+        datasetWithSolarAngle = pd.concat([df for df in datasetWithSolarAngle], axis=0).reset_index(drop=True)
+        # Fill the NaN with the ffill method (simply dropping them would be dangerous for model purposes)
+        if len(datasetWithSolarAngle[datasetWithSolarAngle['solar angle'].isna()]) > 0:
+            print('WARNING: Found: ' + str(len(datasetWithSolarAngle[datasetWithSolarAngle['solar angle'].isna()])) +
+                  ' NaN Values while computing the solar angle - ffill wil be applied')
+            datasetWithSolarAngle = datasetWithSolarAngle.copy()
+            datasetWithSolarAngle['solar angle'] = datasetWithSolarAngle['solar angle'].ffill()
+        return datasetWithSolarAngle
+
     def adaptDataForModel (self, dataFrame, predictiveVariables, labels):
 
         # self.data is in DataFrame format, we need to transform it into array. The desired format is a three dimensional
@@ -76,7 +101,7 @@ class DataPreparation:
         # Now, compute the solar Angle
         if 'solar angle' in predictiveVariables:
             print('computing solar angle...')
-            datasetFinal['solar_angle'] = datasetFinal.apply(self.solar_inclination, axis=1)
+            datasetFinal = self.computeSolarInclinationFromDataFrame(datasetFinal)
 
         # Isolate the columns of interest
         datasetFinal = datasetFinal[predictiveVariables]

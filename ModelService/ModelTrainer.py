@@ -5,12 +5,12 @@ import ModelService as model
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2023-04-01'
+start_date = '2025-02-01'
 end_date = '2025-04-29'
-trainingEpochs = 10
+trainingEpochs = 15
 timeSplit = True
 spaceSplit = True
-nearPointsPerGroup = 25
+nearPointsPerGroup = 30
 test_size = 0.30
 # flag to take an existing Model, and continue the training
 continue_training = False
@@ -40,7 +40,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['year', 'month', 'day', 'hour',
+                                                   predictiveVariables=['year', 'month', 'day', 'hour', 'solar angle',
                                                                         'latitude', 'longitude'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
@@ -53,9 +53,9 @@ if not continue_training:
 
     # Train the Model
     # Model Structure
-    structure = {'FF': [500, 500, 500],
-                 'LSTM': [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
-                 'Conv1D': [64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64],
+    structure = {'FF': [500, 500, 500, 500, 500],
+                 'LSTM': [64, 64, 64, 64, 64, 64, 64, 64, 64],
+                 'Conv1D': [64, 64, 64, 64, 64, 64, 64, 64, 64],
                  'Conv2D': [],
                  'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
