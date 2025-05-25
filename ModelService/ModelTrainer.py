@@ -5,9 +5,9 @@ import ModelService as model
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-02-01'
+start_date = '2024-04-01'
 end_date = '2025-04-29'
-trainingEpochs = 15
+trainingEpochs = 5
 timeSplit = True
 spaceSplit = True
 nearPointsPerGroup = 30

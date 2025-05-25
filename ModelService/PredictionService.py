@@ -8,6 +8,8 @@ from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from DataPreparation import DataPreparation as dt
 import tensorflow as tf
+from pvlib import solarposition
+from pvlib.solarposition import get_solarposition
 import joblib
 
 # Set silent option on downcasting to avoid warning
@@ -15,11 +17,12 @@ pd.set_option('future.no_silent_downcasting', True)
 
 class PredictionService:
 
-    def __init__(self, model, grid_step, start_date, prediction_steps):
+    def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables):
         self.model = model
         self.grid_step = grid_step
         self.start_date = start_date
         self.prediction_steps = prediction_steps
+        self.predictiveVariables = predictiveVariables
         pass
 
     # Utils-like function to standardize the data
@@ -85,9 +88,13 @@ class PredictionService:
             rawPredictionSet.append(dateWithGridCouple)
         rawPredictionSet = pd.concat([df for df in rawPredictionSet], axis = 0)
 
+        # if required, add the solar angle
+        if 'solar angle' in self.predictiveVariables:
+            rawPredictionSet['key'] = rawPredictionSet['lat'].astype(str) + '_' + rawPredictionSet['lng'].astype(str)
+            rawPredictionSet = dt.DataPreparation(self.grid_step).computeSolarInclinationFromDataFrame(rawPredictionSet)
+
         # Now, adapt the data for model with the appropriate function
-        predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet,
-                                        ['year','month','day','hour','lat','lng'], labels=False)
+        predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet, self.predictiveVariables, labels=False)
 
         return predictionSet,rawPredictionSet
 
@@ -132,6 +139,8 @@ class PredictionService:
 
             # Concatenate the prediction with the prediction set
             prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis = 1)
+            # Keep the useful columns, useful for the prediction display
+            prediction_df_complete = prediction_df_complete[['date','lng','lat',predictedVariable]]
             prediction_df_complete = prediction_df_complete.set_axis(['date', 'longitude', 'latitude',
                                                                       predictedVariable], axis = 1)
 
