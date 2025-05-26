@@ -80,7 +80,7 @@ class DataPreparation:
             datasetWithSolarAngle['solar angle'] = datasetWithSolarAngle['solar angle'].ffill()
         return datasetWithSolarAngle
 
-    def adaptDataForModel (self, dataFrame, predictiveVariables, labels):
+    def adaptDataForModel (self, dataFrame, predictiveVariables, labels, variableToPredict):
 
         # self.data is in DataFrame format, we need to transform it into array. The desired format is a three dimensional
         # Array, with two predictors (latitude, longitude) + the variable of interest, while the third dimension is given
@@ -102,6 +102,23 @@ class DataPreparation:
         if 'solar angle' in predictiveVariables:
             print('computing solar angle...')
             datasetFinal = self.computeSolarInclinationFromDataFrame(datasetFinal)
+
+        if 'hour_sin' in predictiveVariables:
+            print('computing hour sin...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['hour_sin'] = np.sin(2 * np.pi * datasetFinal['hour'] / 24) * 0.5
+        if 'hour_cos' in predictiveVariables:
+            print('computing hour cos...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['hour_cos'] = np.cos(2 * np.pi * datasetFinal['hour'] / 24) * 0.5
+        if 'day_sin' in predictiveVariables:
+            print('computing day sin...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['day_sin'] = np.cos(2 * np.pi * datasetFinal['day'] / 24) * 0.5
+        if 'day_cos' in predictiveVariables:
+            print('computing day cos...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['day_cos'] = np.cos(2 * np.pi * datasetFinal['day'] / 24) * 0.5
 
         # Isolate the columns of interest
         datasetFinal = datasetFinal[predictiveVariables]
@@ -340,10 +357,10 @@ class DataPreparation:
            str(round((len(testSet) - 2) / len(dataset[dataset.columns[0]]) * 100, 1)) + '%')
 
         # Now, make the values as array
-        train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False)
-        test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False)
-        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True)
-        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True)
+        train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False, variableToPredict = variableToPredict)
+        test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False, variableToPredict = variableToPredict)
+        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, variableToPredict = variableToPredict)
+        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, variableToPredict = variableToPredict)
 
         # Remove the data that are not in the desired shape
         train_set = self.cleanTrainAndTestSet(train_set)

@@ -17,12 +17,13 @@ pd.set_option('future.no_silent_downcasting', True)
 
 class PredictionService:
 
-    def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables):
+    def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables, variableToPredict):
         self.model = model
         self.grid_step = grid_step
         self.start_date = start_date
         self.prediction_steps = prediction_steps
         self.predictiveVariables = predictiveVariables
+        self.variableToPredict = variableToPredict
         pass
 
     # Utils-like function to standardize the data
@@ -93,10 +94,35 @@ class PredictionService:
             rawPredictionSet['key'] = rawPredictionSet['lat'].astype(str) + '_' + rawPredictionSet['lng'].astype(str)
             rawPredictionSet = dt.DataPreparation(self.grid_step).computeSolarInclinationFromDataFrame(rawPredictionSet)
 
-        # Now, adapt the data for model with the appropriate function
-        predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet, self.predictiveVariables, labels=False)
+        rawPredictionSet = rawPredictionSet.copy()
+        rawPredictionSet['hour'] = pd.to_datetime(rawPredictionSet['date']).dt.hour
+        rawPredictionSet['day'] = pd.to_datetime(rawPredictionSet['date']).dt.day
 
-        return predictionSet,rawPredictionSet
+        # Add hour sin and cos
+        if 'hour_sin' in self.predictiveVariables:
+            print('computing hour sin...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['hour_sin'] = np.sin(2 * np.pi * rawPredictionSet['hour'] / 24) * 0.5
+        if 'hour_cos' in self.predictiveVariables:
+            print('computing hour cos...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['hour_cos'] = np.cos(2 * np.pi * rawPredictionSet['hour'] / 24) * 0.5
+        if 'day_sin' in self.predictiveVariables:
+            print('computing day sin...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['day_sin'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24) * 0.5
+        if 'day_cos' in self.predictiveVariables:
+            print('computing day cos...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['day_cos'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24) * 0.5
+        # Delete the 'hour' column to avoid the double counting
+        rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day'])
+
+        # Now, adapt the data for model with the appropriate function
+        predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet, self.predictiveVariables,
+                                                                             labels=False, variableToPredict=self.variableToPredict)
+
+        return predictionSet, rawPredictionSet
 
     # Class to load the model and run the predictions
     def NNPredict (self, loaded_scaler=None, confidence_levels=False, n_iter=None):
