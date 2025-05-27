@@ -40,7 +40,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['year', 'month','day','day_sin','hour','hour_sin','latitude',
+                                                   predictiveVariables=['year', 'month','month_sin','day','day_sin','hour','hour_sin','latitude',
                                                                         'longitude'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,

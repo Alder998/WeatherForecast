@@ -97,6 +97,7 @@ class PredictionService:
         rawPredictionSet = rawPredictionSet.copy()
         rawPredictionSet['hour'] = pd.to_datetime(rawPredictionSet['date']).dt.hour
         rawPredictionSet['day'] = pd.to_datetime(rawPredictionSet['date']).dt.day
+        rawPredictionSet['month'] = pd.to_datetime(rawPredictionSet['date']).dt.month
 
         # Add hour sin and cos
         if 'hour_sin' in self.predictiveVariables:
@@ -115,8 +116,16 @@ class PredictionService:
             print('computing day cos...')
             rawPredictionSet = rawPredictionSet.copy()
             rawPredictionSet['day_cos'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24) * 0.5
+        if 'month_sin' in self.predictiveVariables:
+            print('computing month sin...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['month_sin'] = np.sin(2 * np.pi * rawPredictionSet['month'] / 24) * 0.5
+        if 'month_cos' in self.predictiveVariables:
+            print('computing month cos...')
+            rawPredictionSet = rawPredictionSet.copy()
+            rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24) * 0.5
         # Delete the 'hour' column to avoid the double counting
-        rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day'])
+        rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
 
         # Now, adapt the data for model with the appropriate function
         predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet, self.predictiveVariables,

@@ -114,11 +114,19 @@ class DataPreparation:
         if 'day_sin' in predictiveVariables:
             print('computing day sin...')
             datasetFinal = datasetFinal.copy()
-            datasetFinal['day_sin'] = np.cos(2 * np.pi * datasetFinal['day'] / 24) * 0.5
+            datasetFinal['day_sin'] = np.sin(2 * np.pi * datasetFinal['day'] / 24) * 0.5
         if 'day_cos' in predictiveVariables:
             print('computing day cos...')
             datasetFinal = datasetFinal.copy()
             datasetFinal['day_cos'] = np.cos(2 * np.pi * datasetFinal['day'] / 24) * 0.5
+        if 'month_sin' in predictiveVariables:
+            print('computing month sin...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['month_sin'] = np.sin(2 * np.pi * datasetFinal['month'] / 24) * 0.5
+        if 'month_cos' in predictiveVariables:
+            print('computing month cos...')
+            datasetFinal = datasetFinal.copy()
+            datasetFinal['month_cos'] = np.cos(2 * np.pi * datasetFinal['month'] / 24) * 0.5
 
         # Isolate the columns of interest
         datasetFinal = datasetFinal[predictiveVariables]
