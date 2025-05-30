@@ -9,7 +9,8 @@ classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' +
                                   grid_step=0.22,
                                   start_date="2025-04-28", # Must be ALWAYS the day before the latest observation
                                   prediction_steps=96,
-                                  predictiveVariables=['year','month','day','day_sin','hour','hour_sin','lat','lng'],
+                                  predictiveVariables=['year', 'month','month_sin','day','day_sin','hour',
+                                                       'hour_sin','latitude','longitude'],
                                   variableToPredict=target)
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
