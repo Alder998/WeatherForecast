@@ -4,7 +4,7 @@ from DataPreparation import DataPreparation as dt
 import ModelService as model
 
 # Variables to fill the model and the model name
-variableToPredict = 'temperature'
+variableToPredict = 'precipitation'
 start_date = '2023-02-01'
 end_date = '2025-04-29'
 trainingEpochs = 5

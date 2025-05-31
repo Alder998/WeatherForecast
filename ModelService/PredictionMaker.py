@@ -5,12 +5,11 @@ from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
 target = "temperature"
-classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_818d_5Epochs',
+classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_759d_35Epochs',
                                   grid_step=0.22,
                                   start_date="2025-04-28", # Must be ALWAYS the day before the latest observation
                                   prediction_steps=96,
-                                  predictiveVariables=['year', 'month','month_sin','day','day_sin','hour',
-                                                       'hour_sin','latitude','longitude'],
+                                  predictiveVariables=['year', 'month','day','hour','lat','lng'],
                                   variableToPredict=target)
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
