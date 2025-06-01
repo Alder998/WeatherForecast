@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
 import joblib
+from ModelStorageService import ModelStorageService as st
 
 class ModelService:
 
@@ -34,7 +35,9 @@ class ModelService:
         X_scaled = X_scaled.reshape(num_samples, num_obs, num_features)
 
         if saveScaler:
-            joblib.dump(scaler, 'scaler_labels_' + model_name + '.pkl')
+            # Appropriate Path to save the scaler
+            scaler_savePath = ("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name)
+            joblib.dump(scaler, scaler_savePath + '\\scaler_labels_' + model_name + '.pkl')
 
         return X_scaled
 
@@ -166,9 +169,14 @@ class ModelService:
         test_loss, test_acc = model.evaluate(test_set, test_labels, verbose=2)
         print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
 
-        # Save the model il .h5 format
-        model.save(save_name + '.h5')
+        # Save the model in .h5 format in the appropriate folder
+        model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + '.h5')
         print('Model Saved Correctly!')
+
+        # Save info
+        st.ModelStorageService(save_name).saveModelInfo(NN_structure=modelStructure, epochs=trainingEpochs,
+                                                        training_test_shape=train_set.shape, test_set_shape=test_set.shape,
+                                                        test_loss=test_acc)
 
         return model
 

@@ -9,9 +9,11 @@ import numpy as np
 from dotenv import load_dotenv
 from matplotlib import pyplot as plt
 from collections import Counter
+import ModelService
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from geopy.distance import geodesic
+from ModelStorageService import ModelStorageService as st
 
 class DataPreparation:
 
@@ -387,7 +389,7 @@ class DataPreparation:
 
         return train_set, test_set, train_labels, test_labels
 
-    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, space_split=True,
+    def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, modelName, space_split=True,
                          time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform'):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
@@ -401,6 +403,20 @@ class DataPreparation:
                                                                 nearPointsPerGroup = nearPointsPerGroup,
                                                                 plot_space_split=plot_space_split,
                                                                 space_split_method=space_split_method)
+
+        # Take care of saving the training data
+        #Time - Split | Time - Space - Split | Space - Split
+        if (time_split) & (space_split):
+            split_method='Time-Space-Split'
+        elif (time_split) & (not space_split):
+            split_method='Time-Split'
+        elif (space_split) & (not time_split):
+            split_method='Space-Split'
+
+        st.ModelStorageService(modelName=modelName).saveModelDataInfo(predictive_variables = predictiveVariables,
+                                                                      split_method=split_method,
+                                                                      geo_split=space_split_method)
+
         return train_set, test_set, train_labels, test_labels
 
     def getSetSize (self, set):

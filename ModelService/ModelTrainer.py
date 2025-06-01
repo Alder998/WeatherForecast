@@ -4,10 +4,10 @@ from DataPreparation import DataPreparation as dt
 import ModelService as model
 
 # Variables to fill the model and the model name
-variableToPredict = 'precipitation'
-start_date = '2023-02-01'
+variableToPredict = 'temperature'
+start_date = '2025-03-01'
 end_date = '2025-04-29'
-trainingEpochs = 5
+trainingEpochs = 2
 timeSplit = True
 spaceSplit = True
 nearPointsPerGroup = 30
@@ -33,6 +33,8 @@ elif (timeSplit) & (not spaceSplit):
 else:
     raise Exception('Time OR Space Split must be specified!')
 
+modelName = 'small-test'
+
 # Now, get the data from Model
 # Get the data
 # Available for model: 'temperature' | 'precipitation' | 'humidity_mean' | 'windSpeed' | 'cloudCover' | 'pressure_msl'
@@ -47,13 +49,14 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split=spaceSplit,
                                                    nearPointsPerGroup=nearPointsPerGroup,
                                                    space_split_method = 'radius',
-                                                   plot_space_split=False)
+                                                   plot_space_split=False,
+                                                   modelName=modelName)
 
 if not continue_training:
 
     # Train the Model
     # Model Structure
-    structure = {'FF': [500, 500, 500, 500],
+    structure = {'FF': [500, 500],
                  'LSTM': [64, 64, 64, 64, 64],
                  'Conv1D': [64, 64, 64, 64, 64],
                  'Conv2D': [],
