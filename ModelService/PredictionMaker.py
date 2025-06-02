@@ -1,21 +1,29 @@
-# Momentary file to run prediction
-
+# File to run prediction
+import json
 import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-target = "temperature"
-classModule = p.PredictionService(model='WeatherForecastModel_TimeSpaceSplit_' + target + '_759d_35Epochs',
-                                  grid_step=0.22,
+model_name = 'boy-temperature-noYear'
+
+# Read the modelInfo
+with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:
+    model_info = json.load(f)
+
+# Instantiate the class
+classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\" + model_name + ".h5",
+                                  grid_step=model_info["grid_step"],
                                   start_date="2025-04-28", # Must be ALWAYS the day before the latest observation
                                   prediction_steps=96,
-                                  predictiveVariables=['year', 'month','day','hour','lat','lng'],
-                                  variableToPredict=target)
+                                  predictiveVariables=model_info["predictive_variables"],
+                                  variableToPredict=model_info["target_variable"],
+                                  timeVariables=model_info["time_variables"])
+# Execute the prediction
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
 # Report Part
 animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dataFrame=predictions,
-                                                                weatherVariable=target,
+                                                                weatherVariable=model_info["target_variable"],
                                                                 start_date=None,
                                                                 end_date=None,
                                                                 colorScale="rainbow",
@@ -24,5 +32,5 @@ animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dat
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
                                                                                      city = 'Lavagna',
-                                                                                     predictedVariable = target,
+                                                                                     predictedVariable=model_info["target_variable"],
                                                                                      confidence_levels=False)

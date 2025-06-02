@@ -23,27 +23,34 @@ class ModelStorageService:
 
     # Desired structure of stored Models: a directory with the Model name (given by the user)
     # That contain all the possible model infos from the "data" part
-    def saveModelDataInfo (self, predictive_variables, split_method, geo_split):
+    def saveModelDataInfo (self, grid_step, predictive_variables, split_method, geo_split, target_variable, timeVariables):
 
         # create directory with the model name
         folder_path = "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.modelName
-        os.makedirs(folder_path, exist_ok=True)
 
-        # The fastest way to store them could be a JSON
+        if os.path.exists(folder_path + '\\modelInfo.json'):
+            # If exists, read the JSON, update it
+            with open(folder_path + '\\modelInfo.json', "r") as f:
+                modelInfo = json.load(f)
+        else:
+            # create the basic JSON
+            os.makedirs(folder_path, exist_ok=True)
+            modelInfo = {}
 
-        # create the basic JSON
-        modelInfo = {}
         # Save the features that are directly from the model module
         modelInfo['predictive_variables'] = predictive_variables  # List
         modelInfo['split_method'] = split_method  # Time-Split | Time-Space-Split | Space-Split
         modelInfo['geo_split'] = geo_split  # Uniform | Radius | Other methods to space split the data
+        modelInfo['target_variable'] = target_variable  # target variable
+        modelInfo['grid_step'] = grid_step  # grid step
+        modelInfo['time_variables'] = timeVariables # Time variables
 
         # Convert everything into string
         data_str_keys = {str(k): v for k, v in modelInfo.items()}
 
         # Save into the stored models directory
         with open(folder_path + "\\modelInfo.json", "w") as f:
-            json.dump(data_str_keys, f, indent=4)
+            json.dump(data_str_keys, f, indent=None)
             print('Model data Info saved correctly!')
 
         return modelInfo
@@ -68,7 +75,7 @@ class ModelStorageService:
 
         # Save into the stored models directory
         with open(folder_path, "w") as f:
-            json.dump(data_str_keys, f, indent=4)
+            json.dump(data_str_keys, f, indent=None)
             print('Model Info saved correctly!')
 
         return existingJSON

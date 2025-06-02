@@ -1,4 +1,5 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
+import json
 import os
 
 import numpy as np
@@ -181,19 +182,18 @@ class ModelService:
         return model
 
     # Function to continue model training from a saved model, and save it again
-    def continueModelTraining (self, modelName, newTrainingEpochs, standardize = True):
+    def continueModelTraining (self, modelName, newTrainingEpochs, standardize=True):
 
-        # Extract the number of epochs
-        existingEpochs = modelName.split('_')[-1].replace('Epochs', '')
-        print('Existing Epochs: ' + existingEpochs)
+        # Extract the number of epochs from the JSON name
+        # Read the JSON file
+        folder_path = "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + modelName + '\\modelInfo.json'
+        with open(folder_path, "r") as f:
+            model_info = json.load(f)
+
+        # Process existing Epochs and new Epochs
+        existingEpochs = model_info["Training Epochs"]
+        print('Existing Epochs: ' + str(existingEpochs))
         newEpochs = int(existingEpochs) + newTrainingEpochs
-        # Now, modify the model name
-        newEpochsInModelName = str(newEpochs) + 'Epochs'
-        newModelName = modelName.split('_')[:-1]
-        newModelName.append(newEpochsInModelName)
-        # Join the name
-        newModelName = '_'.join(newModelName)
-        print('New Model Name: ' + newModelName)
 
         # Process the data
         # Adapt data for Model
@@ -206,7 +206,7 @@ class ModelService:
             # Standardize the data
             train_set = self.standardizeData(train_set)
             # Save the scaler only for train (test set may have fewer observations)
-            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=newModelName)
+            train_labels = self.standardizeData(train_labels, saveScaler=True, model_name=modelName)
             test_set = self.standardizeData(test_set)
             test_labels = self.standardizeData(test_labels)
 
@@ -222,7 +222,7 @@ class ModelService:
         print('Test Labels shape:', test_labels.shape)
 
         # Load stored model
-        existingModel = tf.keras.models.load_model(modelName + ".h5", compile=False)
+        existingModel = tf.keras.models.load_model("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + modelName + '\\' + modelName + ".h5", compile=False)
 
         existingModel.compile(optimizer='adam',
                       loss=tf.keras.losses.MeanSquaredError(),
@@ -235,14 +235,21 @@ class ModelService:
         test_loss, test_acc = existingModel.evaluate(test_set, test_labels, verbose=2)
         print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
 
-        # Save the model il .h5 format
-        existingModel.save(newModelName + '.h5')
+        # Save the model il .h5 format, overwriting the existing one
+        existingModel.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + modelName + "\\" + modelName + '.h5')
         print('Model Saved Correctly!')
 
-        # Now, delete the previous model, and the relative scaler
-        os.remove(modelName + ".h5")
-        os.remove('scaler_labels_' + modelName + ".pkl")
-        print('The previous model has been removed.')
+        # Now, modify the model info that need to be updated, i.e. The Epochs, train, test shape, test loss
+        model_info["Training Epochs"] = newEpochs
+        model_info["Train set shape"] = train_set.shape
+        model_info["Test set shape"] = test_set.shape
+        model_info["Test loss"] = test_acc
+
+        data_str_keys = {str(k): v for k, v in model_info.items()}
+        # save the JSON
+        with open(folder_path, "w") as f:
+            json.dump(data_str_keys, f, indent=None, separators=(",", ": ") )
+            print('Model Info saved correctly!')
 
         return existingModel
 

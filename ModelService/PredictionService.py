@@ -17,13 +17,15 @@ pd.set_option('future.no_silent_downcasting', True)
 
 class PredictionService:
 
-    def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables, variableToPredict):
+    def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables, variableToPredict,
+                 timeVariables):
         self.model = model
         self.grid_step = grid_step
         self.start_date = start_date
         self.prediction_steps = prediction_steps
         self.predictiveVariables = predictiveVariables
         self.variableToPredict = variableToPredict
+        self.timeVariables = timeVariables
         pass
 
     # Utils-like function to standardize the data
@@ -89,6 +91,9 @@ class PredictionService:
             rawPredictionSet.append(dateWithGridCouple)
         rawPredictionSet = pd.concat([df for df in rawPredictionSet], axis = 0)
 
+        # Change the latitude and longitude name in predictive variables list
+        self.predictiveVariables = ["lat" if v == "latitude" else "lng" if v == "longitude" else v for v in self.predictiveVariables]
+
         # if required, add the solar angle
         if 'solar angle' in self.predictiveVariables:
             rawPredictionSet['key'] = rawPredictionSet['lat'].astype(str) + '_' + rawPredictionSet['lng'].astype(str)
@@ -129,7 +134,7 @@ class PredictionService:
 
         # Now, adapt the data for model with the appropriate function
         predictionSet = dt.DataPreparation(self.grid_step).adaptDataForModel(rawPredictionSet, self.predictiveVariables,
-                                                                             labels=False, variableToPredict=self.variableToPredict)
+                                                                             labels=False, timeVariables=self.timeVariables)
 
         return predictionSet, rawPredictionSet
 
@@ -137,13 +142,13 @@ class PredictionService:
     def NNPredict (self, loaded_scaler=None, confidence_levels=False, n_iter=None):
 
         # Load the NN Model
-        model = tf.keras.models.load_model(self.model + '.h5')
+        model = tf.keras.models.load_model(self.model)
 
         # Load the data creating a time-ahead set
         predictionSetRaw, predictionSet_df = self.createPredictionSet()
         # Adapt data for Model
         predictionSet = np.stack(predictionSetRaw, axis=0)
-        predictedVariable = self.model.split('_')[2]
+        predictedVariable = self.variableToPredict
 
         if confidence_levels==False:
 
@@ -160,7 +165,7 @@ class PredictionService:
             if loaded_scaler != None:
                 targetScaler = joblib.load('scaler_labels_' + loaded_scaler + '.pkl')
             else:
-                targetScaler = joblib.load('scaler_labels_' + self.model + '.pkl')
+                targetScaler = joblib.load('\\'.join(self.model.split('\\')[:-1]) + '\\scaler_labels_' + self.model.split('\\')[-1].replace('.h5','') + '.pkl')
 
             # Reshape to apply the inverse transform
             predictions_standardized_reshaped = predictions.reshape(-1, 1)  # (96 * 716, 1)

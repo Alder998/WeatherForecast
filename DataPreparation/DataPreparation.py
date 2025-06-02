@@ -82,7 +82,7 @@ class DataPreparation:
             datasetWithSolarAngle['solar angle'] = datasetWithSolarAngle['solar angle'].ffill()
         return datasetWithSolarAngle
 
-    def adaptDataForModel (self, dataFrame, predictiveVariables, labels, variableToPredict):
+    def adaptDataForModel (self, dataFrame, predictiveVariables, labels, timeVariables=['year', 'month', 'day', 'hour']):
 
         # self.data is in DataFrame format, we need to transform it into array. The desired format is a three dimensional
         # Array, with two predictors (latitude, longitude) + the variable of interest, while the third dimension is given
@@ -142,7 +142,7 @@ class DataPreparation:
             newSizeData = [group[targetColumn].to_numpy().reshape(-1, 1) for _,
             group in datasetFinal.groupby(['year', 'month', 'day', 'hour'])]
         else:
-            newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(['year', 'month', 'day', 'hour'])]
+            newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(timeVariables)]
 
         return newSizeData
 
@@ -291,7 +291,7 @@ class DataPreparation:
         return trainSet, testSet
 
     def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True,
-                           nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform'):
+                           nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform', timeVariables=['year', 'month', 'day', 'hour']):
 
         if (space_split == False) & (time_split == False):
             raise Exception ('Error! At least one split must be filled!')
@@ -367,10 +367,10 @@ class DataPreparation:
            str(round((len(testSet) - 2) / len(dataset[dataset.columns[0]]) * 100, 1)) + '%')
 
         # Now, make the values as array
-        train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False, variableToPredict = variableToPredict)
-        test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False, variableToPredict = variableToPredict)
-        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, variableToPredict = variableToPredict)
-        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, variableToPredict = variableToPredict)
+        train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False, timeVariables=timeVariables)
+        test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False, timeVariables=timeVariables)
+        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, timeVariables=timeVariables)
+        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, timeVariables=timeVariables)
 
         # Remove the data that are not in the desired shape
         train_set = self.cleanTrainAndTestSet(train_set)
@@ -390,7 +390,8 @@ class DataPreparation:
         return train_set, test_set, train_labels, test_labels
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, modelName, space_split=True,
-                         time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform'):
+                         time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform',
+                         timeVariables=['year', 'month', 'day', 'hour']):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
         # Train-test split
@@ -402,7 +403,8 @@ class DataPreparation:
                                                                 time_split=time_split,
                                                                 nearPointsPerGroup = nearPointsPerGroup,
                                                                 plot_space_split=plot_space_split,
-                                                                space_split_method=space_split_method)
+                                                                space_split_method=space_split_method,
+                                                                timeVariables=timeVariables)
 
         # Take care of saving the training data
         #Time - Split | Time - Space - Split | Space - Split
@@ -415,7 +417,10 @@ class DataPreparation:
 
         st.ModelStorageService(modelName=modelName).saveModelDataInfo(predictive_variables = predictiveVariables,
                                                                       split_method=split_method,
-                                                                      geo_split=space_split_method)
+                                                                      geo_split=space_split_method,
+                                                                      target_variable=variableToPredict,
+                                                                      grid_step=self.grid_step,
+                                                                      timeVariables=timeVariables)
 
         return train_set, test_set, train_labels, test_labels
 
