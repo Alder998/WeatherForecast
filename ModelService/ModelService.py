@@ -3,7 +3,8 @@ import json
 import os
 
 import numpy as np
-from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Conv2D, Flatten, Reshape, UpSampling1D, UpSampling2D, MaxPooling2D
+from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Conv2D, Flatten, Reshape, UpSampling1D, \
+    UpSampling2D, MaxPooling2D, GlobalAveragePooling2D, Permute, GlobalAveragePooling1D
 from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
@@ -84,8 +85,8 @@ class ModelService:
 
         # Add the Con2D layer
         if len(modelStructure['Conv2D']) > 0:
-            train_set = tf.expand_dims(train_set, axis=-1)  # (1368, 604, 6, 1)
-            train_labels = tf.expand_dims(train_labels, axis=-1)  # (1368, 604, 1, 1)
+            train_set = tf.expand_dims(train_set, axis=-1)  # (timeSteps, batch, features, 1)
+            train_labels = tf.expand_dims(train_labels, axis=-1)  # (timeSteps, batch, features, 1)
             for c in range(len(modelStructure['Conv2D'])):
                 units = modelStructure['Conv2D'][c]
                 if c == 0:
@@ -99,6 +100,17 @@ class ModelService:
                 model.add(MaxPooling2D(pool_size=2, padding='same'))
                 # Upsampling to preserve the dimensionality
                 model.add(UpSampling2D(size=2))
+
+            # This layer will only be used for time-space, so it must be RESHAPED to fit with the
+            # LSTM layer, that by default needs 3-dimensional inputs, therefore:
+            # Reshape: (batch, H, W, C) → (batch, H*W, C)
+            model.add(Reshape((train_set.shape[1], -1)))
+            model.add(Permute((2, 1)))
+            model.add(Reshape((train_set.shape[1], -1)))
+
+            # Permute to (timesteps, batch, features)
+            #model.add(Permute((2, 1)))  # now shape: (timesteps, batch, features)
+            #model.add(Permute((2, 1)))  # back to (batch, timesteps, features)
 
         # Proceed with the Recurrent Part with LSTM layers
         if len(modelStructure['LSTM']) > 0:
@@ -148,6 +160,9 @@ class ModelService:
 
         # then, add the FF layer
         for l in range(len(modelStructure['FF'])):
+            if (len(modelStructure['Conv2D']) != 0) & (l==0):
+                # Added the global average pooling layer to handle the flattening for the FF layer
+                model.add(GlobalAveragePooling1D())
             unitsFF = modelStructure['FF'][l]
             layerFF = tf.keras.layers.Dense(unitsFF, activation='relu')
             # Add the Dropout layer for FF
