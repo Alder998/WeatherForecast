@@ -92,11 +92,11 @@ class ModelService:
                 if c == 0:
                     # (1368, 604, 6) must be input_shape=(604, 6, 1) or input_shape=(604, 1, 6)
                     model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
-                                    padding="same", activation="tanh",
+                                    padding="same", activation="relu",
                                     input_shape=(train_set.shape[1], train_set.shape[2], 1)))
                 else:
                     model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
-                                    padding="same", activation="tanh"))
+                                    padding="same", activation="relu"))
                 model.add(MaxPooling2D(pool_size=2, padding='same'))
                 # Upsampling to preserve the dimensionality
                 model.add(UpSampling2D(size=2))
@@ -105,8 +105,8 @@ class ModelService:
             # LSTM layer, that by default needs 3-dimensional inputs, therefore:
             # Reshape: (batch, H, W, C) → (batch, H*W, C)
             model.add(Reshape((train_set.shape[1], -1)))
-            model.add(Permute((2, 1)))
-            model.add(Reshape((train_set.shape[1], -1)))
+            #model.add(Permute((2, 1)))
+            #model.add(Reshape((train_set.shape[1], -1)))
 
             # Permute to (timesteps, batch, features)
             #model.add(Permute((2, 1)))  # now shape: (timesteps, batch, features)
