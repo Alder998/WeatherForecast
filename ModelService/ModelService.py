@@ -85,8 +85,8 @@ class ModelService:
 
         # Add the Con2D layer
         if len(modelStructure['Conv2D']) > 0:
-            train_set = tf.expand_dims(train_set, axis=-1)  # (timeSteps, batch, features, 1)
-            train_labels = tf.expand_dims(train_labels, axis=-1)  # (timeSteps, batch, features, 1)
+            #train_set = tf.expand_dims(train_set, axis=-1)  # (timeSteps, batch, features, 1)
+            #train_labels = tf.expand_dims(train_labels, axis=-1)  # (timeSteps, batch, features, 1)
             for c in range(len(modelStructure['Conv2D'])):
                 units = modelStructure['Conv2D'][c]
                 if c == 0:
@@ -104,7 +104,7 @@ class ModelService:
             # This layer will only be used for time-space, so it must be RESHAPED to fit with the
             # LSTM layer, that by default needs 3-dimensional inputs, therefore:
             # Reshape: (batch, H, W, C) → (batch, H*W, C)
-            model.add(Reshape((train_set.shape[1], -1)))
+            model.add(Reshape((train_set.shape[2], -1)))
             #model.add(Permute((2, 1)))
             #model.add(Reshape((train_set.shape[1], -1)))
 
@@ -179,11 +179,16 @@ class ModelService:
                       metrics=['mse'])
 
         # Now, Train the Model
-        model.fit(train_set, train_labels, epochs=trainingEpochs)
-
-        # Evaluate on Test set
-        test_loss, test_acc = model.evaluate(test_set, test_labels, verbose=2)
-        print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
+        if len(modelStructure['Conv2D']) != 0:
+            model.fit(tf.expand_dims(train_set, axis=-1), tf.expand_dims(train_labels, axis=-1), epochs=trainingEpochs)
+            # Evaluate on Test set
+            test_loss, test_acc = model.evaluate(tf.expand_dims(test_set, axis=-1), tf.expand_dims(test_labels, axis=-1), verbose=2)
+            print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
+        else:
+            model.fit(train_set, train_labels, epochs=trainingEpochs)
+            # Evaluate on Test set
+            test_loss, test_acc = model.evaluate(test_set, test_labels, verbose=2)
+            print('Test Mean-Squared-Error:', '{:,}'.format(test_acc))
 
         # Save the model in .h5 format in the appropriate folder
         model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + '.h5')
