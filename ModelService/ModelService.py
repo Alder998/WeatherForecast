@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Conv2D, Flatten, Reshape, UpSampling1D, \
-    UpSampling2D, MaxPooling2D, GlobalAveragePooling2D, Permute, GlobalAveragePooling1D
+    UpSampling2D, MaxPooling2D, GlobalAveragePooling2D, Permute, GlobalAveragePooling1D, InputLayer
 from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
@@ -78,7 +78,7 @@ class ModelService:
         if len(modelStructure['Conv1D']) > 0:
             for c in range(len(modelStructure['Conv1D'])):
                 units = modelStructure['Conv1D'][c]
-                model.add(Conv1D(filters=units, kernel_size=3, activation='relu', padding='same'))
+                model.add(Conv1D(filters=units, kernel_size=3, activation='relu', padding='same', input_shape=(train_set.shape[1], train_set.shape[2])))
                 model.add(MaxPooling1D(pool_size=2, padding='same'))
                 # Upsampling to preserve the dimensionality
                 model.add(UpSampling1D(size=2))
@@ -91,20 +91,21 @@ class ModelService:
                 units = modelStructure['Conv2D'][c]
                 if c == 0:
                     # (1368, 604, 6) must be input_shape=(604, 6, 1) or input_shape=(604, 1, 6)
-                    model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
-                                    padding="same", activation="relu",
-                                    input_shape=(train_set.shape[1], train_set.shape[2], 1)))
+                    model.add((Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
+                                    padding="same", activation="relu")))
                 else:
-                    model.add(Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
-                                    padding="same", activation="relu"))
-                model.add(MaxPooling2D(pool_size=2, padding='same'))
+                    model.add((Conv2D(filters=units, kernel_size=(3, 3), strides=(1, 1),
+                                    padding="same", activation="relu")))
+                model.add((MaxPooling2D(pool_size=(2, 2), padding='same')))
                 # Upsampling to preserve the dimensionality
-                model.add(UpSampling2D(size=2))
+                model.add((UpSampling2D(size=(2, 2))))
 
             # This layer will only be used for time-space, so it must be RESHAPED to fit with the
             # LSTM layer, that by default needs 3-dimensional inputs, therefore:
             # Reshape: (batch, H, W, C) → (batch, H*W, C)
-            model.add(Reshape((train_set.shape[2], -1)))
+            #model.add(Reshape((train_set.shape[2], -1)))  # keeps time dimension
+            #model.add((Reshape((-1,))))
+            #model.add(TimeDistributed(Flatten()))  # (batch, time_steps, features)
             #model.add(Permute((2, 1)))
             #model.add(Reshape((train_set.shape[1], -1)))
 
@@ -178,8 +179,12 @@ class ModelService:
                       loss=tf.keras.losses.MeanSquaredError(),
                       metrics=['mse'])
 
+        print(model.summary())
+
         # Now, Train the Model
         if len(modelStructure['Conv2D']) != 0:
+            #train_set = tf.expand_dims(train_set, axis=-1)  # (timeSteps, batch, features, 1)
+            #train_labels = tf.expand_dims(train_labels, axis=-1)  # (timeSteps, batch, features, 1)
             model.fit(tf.expand_dims(train_set, axis=-1), tf.expand_dims(train_labels, axis=-1), epochs=trainingEpochs)
             # Evaluate on Test set
             test_loss, test_acc = model.evaluate(tf.expand_dims(test_set, axis=-1), tf.expand_dims(test_labels, axis=-1), verbose=2)

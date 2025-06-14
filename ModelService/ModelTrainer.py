@@ -46,8 +46,8 @@ if not continue_training['continue']:
     # Model Structure
     structure = {'FF': [500, 500],
                  'LSTM': [64, 64, 64],
-                 'Conv1D': [],
-                 'Conv2D': [64, 64, 64],
+                 'Conv1D': [64, 64, 64],
+                 'Conv2D': [],
                  'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
