@@ -249,35 +249,41 @@ class DataPreparation:
         return grid_train_r, grid_test_r
 
     # Function for weekly time split not be affected by seasonality
-    def timeSplit (self, dataset, test_size):
+    def timeSplit (self, dataset, test_size, method ="sparse_weekly"):
 
-        # Create date range from start date to end date (returning n weeks sunday-sunday according the time range)
-        weeklyRange = pd.date_range(pd.to_datetime(dataset['date']).min(), pd.to_datetime(dataset['date']).max(), freq='W')
-        # Isolate the test set
-        weeklyIndex = np.linspace(0, len(weeklyRange), int(len(weeklyRange) * test_size))
-        weeklyRangeFiltered = []
-        for index in weeklyIndex:
-            if index < weeklyIndex.max():
-                weeklyRangeFiltered.append(weeklyRange[int(index)])
+        if method == "sparse_weekly":
+            # Create date range from start date to end date (returning n weeks sunday-sunday according the time range)
+            weeklyRange = pd.date_range(pd.to_datetime(dataset['date']).min(), pd.to_datetime(dataset['date']).max(), freq='W')
+            # Isolate the test set
+            weeklyIndex = np.linspace(0, len(weeklyRange), int(len(weeklyRange) * test_size))
+            weeklyRangeFiltered = []
+            for index in weeklyIndex:
+                if index < weeklyIndex.max():
+                    weeklyRangeFiltered.append(weeklyRange[int(index)])
+                else:
+                    weeklyRangeFiltered.append(weeklyRange[int(index) - 1])
+
+            # Create the week Adding 7 days (sundayW0-sundayW1)
+            ranges = []
+            if len(weeklyRangeFiltered) > 1:
+                for wk in weeklyRangeFiltered:
+                    ranges.append([wk, wk + pd.Timedelta(days=7)])
             else:
-                weeklyRangeFiltered.append(weeklyRange[int(index) - 1])
+                # Implement the test size with only one week of data
+                ranges.append([weeklyRangeFiltered[0], weeklyRangeFiltered[0] + pd.Timedelta(days=7)])
 
-        # Create the week Adding 7 days (sundayW0-sundayW1)
-        ranges = []
-        if len(weeklyRangeFiltered) > 1:
-            for wk in weeklyRangeFiltered:
-                ranges.append([wk, wk + pd.Timedelta(days=7)])
+            # Now, isolate the train and test set
+            testSet = []
+            for dateIndexCouple in ranges:
+                # Isolated a couple of date indexes
+                test_part = dataset[(pd.to_datetime(dataset['date']) >= dateIndexCouple[0]) & (pd.to_datetime(dataset['date']) <= dateIndexCouple[1])]
+                testSet.append(test_part)
+            testSet = pd.concat([df for df in testSet], axis = 0)#.reset_index(drop=True)
+
+        elif method == "uniform":
+            testSet = dataset[:int(len(dataset[dataset.columns[0]]) * test_size)]
         else:
-            # Implement the test size with only one week of data
-            ranges.append([weeklyRangeFiltered[0], weeklyRangeFiltered[0] + pd.Timedelta(days=7)])
-
-        # Now, isolate the train and test set
-        testSet = []
-        for dateIndexCouple in ranges:
-            # Isolated a couple of date indexes
-            test_part = dataset[(pd.to_datetime(dataset['date']) >= dateIndexCouple[0]) & (pd.to_datetime(dataset['date']) <= dateIndexCouple[1])]
-            testSet.append(test_part)
-        testSet = pd.concat([df for df in testSet], axis = 0)#.reset_index(drop=True)
+            raise Exception("Time-split method: " + str(method) + " has not be implemented!")
 
         # Generate the train set by exclusion
         trainSet = dataset[~dataset['date'].isin(testSet['date'])]#.reset_index(drop=True)
@@ -291,7 +297,8 @@ class DataPreparation:
         return trainSet, testSet
 
     def timeAndSpaceSplit (self, dataset, test_size, predictiveVariables, variableToPredict, space_split=True, time_split=True,
-                           nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform', timeVariables=['year', 'month', 'day', 'hour']):
+                           nearPointsPerGroup = 4, plot_space_split = False, space_split_method = 'uniform', timeVariables=['year', 'month', 'day', 'hour'],
+                           time_split_method="sparse_weekly"):
 
         if (space_split == False) & (time_split == False):
             raise Exception ('Error! At least one split must be filled!')
@@ -317,7 +324,7 @@ class DataPreparation:
 
         # Now apply the Time Split (train is the first n observations, test is the remaining m observations)
         if time_split:
-            trainSet_time, testSet_time = self.timeSplit(dataset=dataset, test_size=test_size)
+            trainSet_time, testSet_time = self.timeSplit(dataset=dataset, test_size=test_size, method=time_split_method)
             if not space_split:
                 trainTest, testSet = trainSet_time, testSet_time
 
@@ -391,7 +398,7 @@ class DataPreparation:
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, modelName, space_split=True,
                          time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform',
-                         timeVariables=['year', 'month', 'day', 'hour']):
+                         timeVariables=['year', 'month', 'day', 'hour'], time_split_method="sparse_weekly"):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
         # Train-test split
@@ -404,7 +411,8 @@ class DataPreparation:
                                                                 nearPointsPerGroup = nearPointsPerGroup,
                                                                 plot_space_split=plot_space_split,
                                                                 space_split_method=space_split_method,
-                                                                timeVariables=timeVariables)
+                                                                timeVariables=timeVariables,
+                                                                time_split_method=time_split_method)
 
         # Take care of saving the training data
         #Time - Split | Time - Space - Split | Space - Split

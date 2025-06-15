@@ -3,13 +3,13 @@ from datetime import datetime
 from DataPreparation import DataPreparation as dt
 import ModelService as model
 
-modelName = 'test-conv2D'
+modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-02-01'
+start_date = '2024-04-29'
 end_date = '2025-04-29'
-trainingEpochs = 3
+trainingEpochs = 5
 timeSplit = True
 spaceSplit = True
 nearPointsPerGroup = 30
@@ -38,7 +38,8 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    nearPointsPerGroup=nearPointsPerGroup,
                                                    space_split_method = 'radius',
                                                    plot_space_split=False,
-                                                   modelName=modelName)
+                                                   modelName=modelName,
+                                                   time_split_method="uniform")
 
 if not continue_training['continue']:
 

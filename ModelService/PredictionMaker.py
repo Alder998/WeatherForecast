@@ -4,7 +4,7 @@ import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-model_name = 'allData-temperature-general'
+model_name = 'small-bidirectional-LSMT'
 
 # Read the modelInfo
 with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:
@@ -31,6 +31,6 @@ animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dat
                                                                 show=True)
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Lavagna',
+                                                                                     city = 'Milano',
                                                                                      predictedVariable=model_info["target_variable"],
                                                                                      confidence_levels=False)

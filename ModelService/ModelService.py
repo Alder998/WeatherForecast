@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 from keras.src.layers import TimeDistributed, MaxPooling1D, Conv1D, Conv2D, Flatten, Reshape, UpSampling1D, \
-    UpSampling2D, MaxPooling2D, GlobalAveragePooling2D, Permute, GlobalAveragePooling1D, InputLayer
+    UpSampling2D, MaxPooling2D, GlobalAveragePooling2D, Permute, GlobalAveragePooling1D, InputLayer, Bidirectional
 from sklearn.preprocessing import StandardScaler
 import DataPreparation as dt
 import tensorflow as tf
@@ -120,18 +120,18 @@ class ModelService:
                 units = modelStructure['LSTM'][l]
                 if l == 0:
                     # Input_shape required on the first layer
-                    layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True,
-                                                 input_shape=(None, train_set.shape[2]))
+                    layer = Bidirectional(tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True,
+                                                 input_shape=(None, train_set.shape[2])))
                 else:
                     if return_seq_last_rec_layer:
                         # For others, no issues
                         # Remove the timestamp param if the layer is the last one of the LSM Structure
                         if l == len(modelStructure['LSTM']) - 1:
-                            layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=False)
+                            layer = Bidirectional(tf.keras.layers.LSTM(units, activation='tanh', return_sequences=False))
                         else:
-                            layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
+                            layer = Bidirectional(tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True))
                     else:
-                        layer = tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True)
+                        layer = Bidirectional(tf.keras.layers.LSTM(units, activation='tanh', return_sequences=True))
                 # Add the dropout layer
                 model.add(tf.keras.layers.Dropout(dropout_LSTM))
                 # Finally, add the layer to the model
@@ -179,7 +179,8 @@ class ModelService:
                       loss=tf.keras.losses.MeanSquaredError(),
                       metrics=['mse'])
 
-        print(model.summary())
+        # Model.summary() to see the model shapes
+        #print(model.summary())
 
         # Now, Train the Model
         if len(modelStructure['Conv2D']) != 0:
