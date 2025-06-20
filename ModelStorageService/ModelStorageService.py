@@ -23,7 +23,7 @@ class ModelStorageService:
 
     # Desired structure of stored Models: a directory with the Model name (given by the user)
     # That contain all the possible model infos from the "data" part
-    def saveModelDataInfo (self, grid_step, predictive_variables, split_method, geo_split, target_variable, timeVariables):
+    def saveModelDataInfo (self, grid_step, predictive_variables, split_method, geo_split, target_variable, timeVariables, time_split):
 
         # create directory with the model name
         folder_path = "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.modelName
@@ -44,6 +44,7 @@ class ModelStorageService:
         modelInfo['target_variable'] = target_variable  # target variable
         modelInfo['grid_step'] = grid_step  # grid step
         modelInfo['time_variables'] = timeVariables # Time variables
+        modelInfo['time_split'] = time_split  # Uniform | Radius | Other methods to space split the data
 
         # Convert everything into string
         data_str_keys = {str(k): v for k, v in modelInfo.items()}

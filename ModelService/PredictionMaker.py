@@ -4,7 +4,7 @@ import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-model_name = 'small-bidirectional-LSMT'
+model_name = 'small-bidirectional-LSMT-uniform_time'
 
 # Read the modelInfo
 with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:

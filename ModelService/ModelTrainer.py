@@ -7,7 +7,7 @@ modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2024-04-29'
+start_date = '2025-03-01'
 end_date = '2025-04-29'
 trainingEpochs = 5
 timeSplit = True
@@ -52,7 +52,7 @@ if not continue_training['continue']:
                  'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
-                                                                               dropout_FF=0.20,
+                                                                               dropout_FF=0.10,
                                                                                dropout_LSTM=0.20,
                                                                                standardize=True,
                                                                                return_seq_last_rec_layer=False,

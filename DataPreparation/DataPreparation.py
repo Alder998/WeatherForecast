@@ -428,7 +428,8 @@ class DataPreparation:
                                                                       geo_split=space_split_method,
                                                                       target_variable=variableToPredict,
                                                                       grid_step=self.grid_step,
-                                                                      timeVariables=timeVariables)
+                                                                      timeVariables=timeVariables,
+                                                                      time_split=time_split)
 
         return train_set, test_set, train_labels, test_labels
 
