@@ -7,7 +7,7 @@ modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2024-04-29'
+start_date = '2025-01-29'
 end_date = '2025-04-29'
 trainingEpochs = 3
 timeSplit = True
@@ -30,7 +30,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['year','month','day','hour','latitude','longitude'],
+                                                   predictiveVariables=['year','month','day','hour','latitude','longitude','seasonal'],
                                                    timeVariables=['year','month','day','hour'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
@@ -39,21 +39,22 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split_method = 'radius',
                                                    plot_space_split=False,
                                                    modelName=modelName,
-                                                   time_split_method="uniform")
+                                                   time_split_method="uniform",
+                                                   seasonal_decomposition=True)
 
 if not continue_training['continue']:
 
     # Train the Model
     # Model Structure
     structure = {'FF': [500, 500],
-                 'LSTM': [256, 256, 256],
+                 'LSTM': [128, 128, 128],
                  'Conv1D': [64, 64, 64],
                  'Conv2D': [],
                  'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
-                                                                               dropout_FF=0.10,
-                                                                               dropout_LSTM=0.10,
+                                                                               dropout_FF=0.05,
+                                                                               dropout_LSTM=0.05,
                                                                                standardize=True,
                                                                                return_seq_last_rec_layer=False,
                                                                                save_name=modelName)

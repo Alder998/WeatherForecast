@@ -1,7 +1,10 @@
 # Class that allow to make prediction on future data and visualize them so to understand if the model has scored well
 import os
+from datetime import datetime, timedelta
+
 import numpy as np
 import pandas as pd
+from prophet import Prophet
 from dotenv import load_dotenv
 from sklearn.preprocessing import StandardScaler
 from DatabaseManager import Database as db
@@ -108,27 +111,31 @@ class PredictionService:
         if 'hour_sin' in self.predictiveVariables:
             print('computing hour sin...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['hour_sin'] = np.sin(2 * np.pi * rawPredictionSet['hour'] / 24) * 0.5
+            rawPredictionSet['hour_sin'] = np.sin(2 * np.pi * rawPredictionSet['hour'] / 24)
         if 'hour_cos' in self.predictiveVariables:
             print('computing hour cos...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['hour_cos'] = np.cos(2 * np.pi * rawPredictionSet['hour'] / 24) * 0.5
+            rawPredictionSet['hour_cos'] = np.cos(2 * np.pi * rawPredictionSet['hour'] / 24)
         if 'day_sin' in self.predictiveVariables:
             print('computing day sin...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['day_sin'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24) * 0.5
+            rawPredictionSet['day_sin'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24)
         if 'day_cos' in self.predictiveVariables:
             print('computing day cos...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['day_cos'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24) * 0.5
+            rawPredictionSet['day_cos'] = np.cos(2 * np.pi * rawPredictionSet['day'] / 24)
         if 'month_sin' in self.predictiveVariables:
             print('computing month sin...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['month_sin'] = np.sin(2 * np.pi * rawPredictionSet['month'] / 24) * 0.5
+            rawPredictionSet['month_sin'] = np.sin(2 * np.pi * rawPredictionSet['month'] / 24)
         if 'month_cos' in self.predictiveVariables:
             print('computing month cos...')
             rawPredictionSet = rawPredictionSet.copy()
-            rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24) * 0.5
+            rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
+        if 'seasonal' in self.predictiveVariables:
+            # Create a Prophet prediction for each grid point
+            seasonalData = self.createProphetPrediction()
+            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1)], axis = 1)
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
 
@@ -138,7 +145,7 @@ class PredictionService:
 
         return predictionSet, rawPredictionSet
 
-    # Class to load the model and run the predictions
+    # Class to load the model and run the pr]edictions
     def NNPredict (self, loaded_scaler=None, confidence_levels=False, n_iter=None):
 
         # Load the NN Model
@@ -240,6 +247,46 @@ class PredictionService:
                 tcheck.append(value.shape)
 
         return tcheck
+
+    def createProphetPrediction(self):
+
+        # get the data to train Prophet. To avoid it to be too long, take the last 10 days
+        dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
+                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=10)) + "'" + ' AND ' + "'" +
+                                             self.start_date + "'")
+
+        # Isolate each point into the grid
+        dataWithPrediction = []
+        dataFromQuery["key"] = dataFromQuery["latitude"].astype(str) + "_" + dataFromQuery["longitude"].astype(str)
+        print("Adding Prophet Predictions to the model...")
+        for i, singleCoord in enumerate(dataFromQuery["key"].unique()):
+            dataFromQuery_time = dataFromQuery[dataFromQuery["key"] == singleCoord].reset_index(drop=True)
+            dataFromQuery_time = dataFromQuery_time[["date",
+                                 self.variableToPredict]].rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict:"y"})
+            # Fit prophet
+            print("Adding Prophet Predictions to the model - " + str(round((i/len(dataFromQuery["key"].unique())) * 100, 2)) + "% ...")
+            m = Prophet(
+                yearly_seasonality=True,
+                weekly_seasonality=True,
+                daily_seasonality=True,
+                #seasonality_mode='additive',
+                #changepoint_prior_scale=0.0
+            )
+            # fit the model
+            m.fit(dataFromQuery_time)
+            # Create future Dataframe + predict
+            future = m.make_future_dataframe(periods=self.prediction_steps, freq='d')
+            forecast = m.predict(future)
+            forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
+
+            # Extract Seasonality
+            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly']).values
+            dataWithPrediction.append(pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1))
+        dataWithPrediction = pd.concat([df for df in dataWithPrediction], axis=0).reset_index(drop=True)
+
+        return dataWithPrediction
+
+
 
 
 

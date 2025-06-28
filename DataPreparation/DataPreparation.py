@@ -1,6 +1,7 @@
 # Data Preparation Class (mainly functional)
 import math
 import os
+from statsmodels.tsa.seasonal import STL
 from datetime import datetime
 from pvlib import solarposition
 from pvlib.solarposition import get_solarposition
@@ -398,9 +399,12 @@ class DataPreparation:
 
     def getDataForModel (self, start_date, end_date, test_size, predictiveVariables, variableToPredict, modelName, space_split=True,
                          time_split=True, nearPointsPerGroup=4, plot_space_split=False, space_split_method='uniform',
-                         timeVariables=['year', 'month', 'day', 'hour'], time_split_method="sparse_weekly"):
+                         timeVariables=['year', 'month', 'day', 'hour'], time_split_method="sparse_weekly", seasonal_decomposition=False):
 
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
+        # Implementation of a seasonal decomposition method to be able to isolate the seasonal term
+        if seasonal_decomposition:
+            data = self.applySeasonalDemposition (data, target_variable=variableToPredict)
         # Train-test split
         train_set, test_set, train_labels, test_labels = self.timeAndSpaceSplit(dataset=data,
                                                                 test_size=test_size,
@@ -441,3 +445,27 @@ class DataPreparation:
                 tcheck.append(value.shape)
 
         return tcheck
+
+    def applySeasonalDemposition (self, dataset, target_variable):
+
+        # Apply the decomposition to each point of the grid
+        seasonal_db = []
+        dataset["key"] = dataset["latitude"].astype(str) + '_' + dataset["longitude"].astype(str)
+        for i, singleArea in enumerate(dataset["key"].unique()):
+            print("Applying seasonal Decomposition - " + str(round((i/len(dataset["key"].unique())) * 100, 2)) + "% ...")
+            # Isolate each time series
+            dataset_time = dataset[dataset["key"] == singleArea].reset_index(drop=True)
+            stl = STL(dataset_time[target_variable], period=24)
+            res = stl.fit()
+
+            # Get the seasonal components
+            seasonal = res.seasonal
+            trend = res.trend
+            residual = res.resid
+
+            # Concatenate the seasonality component to the actual database
+            dataset_time["seasonal"] = pd.DataFrame(seasonal)
+            seasonal_db.append(dataset_time)
+        seasonal_db = pd.concat([df for df in seasonal_db], axis = 0).reset_index(drop=True)
+
+        return seasonal_db.drop(columns=["key"])
