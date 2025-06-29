@@ -135,7 +135,7 @@ class PredictionService:
         if 'seasonal' in self.predictiveVariables:
             # Create a Prophet prediction for each grid point
             seasonalData = self.createProphetPrediction()
-            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1)], axis = 1)
+            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1).set_index(rawPredictionSet.index)], axis = 1)
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
 
