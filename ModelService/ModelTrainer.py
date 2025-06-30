@@ -15,8 +15,8 @@ spaceSplit = True
 nearPointsPerGroup = 30
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = {'continue': False,
-                     'new_epochs': 2}
+continue_training = {'continue': True,
+                     'new_epochs': 7}
 
 # Set the model name
 timeSpan = (datetime.strptime(end_date, '%Y-%m-%d') -

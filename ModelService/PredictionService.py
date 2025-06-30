@@ -134,7 +134,7 @@ class PredictionService:
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
         if 'seasonal' in self.predictiveVariables:
             # Create a Prophet prediction for each grid point
-            seasonalData = self.createProphetPrediction()
+            seasonalData = self.createProphetPrediction(prediction_set = rawPredictionSet)
             rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1).set_index(rawPredictionSet.index)], axis = 1)
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
@@ -248,11 +248,11 @@ class PredictionService:
 
         return tcheck
 
-    def createProphetPrediction(self):
+    def createProphetPrediction(self, prediction_set):
 
         # get the data to train Prophet. To avoid it to be too long, take the last 10 days
         dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
-                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=10)) + "'" + ' AND ' + "'" +
+                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=365)) + "'" + ' AND ' + "'" +
                                              self.start_date + "'")
 
         # Isolate each point into the grid
@@ -283,6 +283,12 @@ class PredictionService:
             seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly']).values
             dataWithPrediction.append(pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1))
         dataWithPrediction = pd.concat([df for df in dataWithPrediction], axis=0).reset_index(drop=True)
+
+        # Store the Prophet Prediction to avoid multiple computation for prediction (in the model directory)
+        rawPredictionSet = pd.concat([prediction_set, dataWithPrediction.set_index(prediction_set.index)], axis=1)
+
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xslx"
+        rawPredictionSet.to_excel(rootModelDirectory)
 
         return dataWithPrediction
 
