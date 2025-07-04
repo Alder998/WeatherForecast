@@ -134,7 +134,7 @@ class PredictionService:
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
         if 'seasonal' in self.predictiveVariables:
             # Create a Prophet prediction for each grid point
-            seasonalData = self.createProphetPrediction(prediction_set = rawPredictionSet)
+            seasonalData = self.manageProphetPredictionForStagionality(prediction_set = rawPredictionSet)
             rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1).set_index(rawPredictionSet.index)], axis = 1)
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
@@ -248,11 +248,13 @@ class PredictionService:
 
         return tcheck
 
-    def createProphetPrediction(self, prediction_set):
+    def createProphetPrediction(self, prediction_set, dataset_depth=30, prediction_steps=1000):
 
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xlsx"
+        # Case: the prophet prediction does not exist for the model: create it
         # get the data to train Prophet. To avoid it to be too long, take the last 10 days
         dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
-                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=365)) + "'" + ' AND ' + "'" +
+                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=dataset_depth)) + "'" + ' AND ' + "'" +
                                              self.start_date + "'")
 
         # Isolate each point into the grid
@@ -275,7 +277,7 @@ class PredictionService:
             # fit the model
             m.fit(dataFromQuery_time)
             # Create future Dataframe + predict
-            future = m.make_future_dataframe(periods=self.prediction_steps, freq='d')
+            future = m.make_future_dataframe(periods=prediction_steps, freq='H')
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
@@ -287,10 +289,30 @@ class PredictionService:
         # Store the Prophet Prediction to avoid multiple computation for prediction (in the model directory)
         rawPredictionSet = pd.concat([prediction_set, dataWithPrediction.set_index(prediction_set.index)], axis=1)
 
-        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xslx"
         rawPredictionSet.to_excel(rootModelDirectory)
 
         return dataWithPrediction
+
+    def manageProphetPredictionForStagionality(self, prediction_set):
+
+        # Read the root model directory
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xlsx"
+
+        # Case: the prophet prediction does not exist for the model
+        if not os.path.exists(rootModelDirectory):
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+            return predictionData
+        # Case: the prophet prediction does exist for the model
+        if os.path.exists(rootModelDirectory):
+            # read the file
+            predictionData = pd.read_excel(rootModelDirectory)
+            if len(predictionData[predictionData.columns[0]]) < self.prediction_steps:
+                return predictionData[:self.prediction_steps]
+            else:
+                # Update overwriting: no other choice
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+                return predictionData
+
 
 
 
