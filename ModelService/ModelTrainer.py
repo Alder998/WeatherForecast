@@ -7,7 +7,7 @@ modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2025-01-29'
+start_date = '2024-04-29'
 end_date = '2025-04-29'
 trainingEpochs = 3
 timeSplit = True
@@ -15,7 +15,7 @@ spaceSplit = True
 nearPointsPerGroup = 30
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = {'continue': True,
+continue_training = {'continue': False,
                      'new_epochs': 7}
 
 # Set the model name
@@ -36,10 +36,10 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    time_split=timeSplit,
                                                    space_split=spaceSplit,
                                                    nearPointsPerGroup=nearPointsPerGroup,
-                                                   space_split_method = 'radius',
+                                                   space_split_method = "radius",
                                                    plot_space_split=False,
                                                    modelName=modelName,
-                                                   time_split_method="uniform",
+                                                   time_split_method="sparse_weekly",
                                                    seasonal_decomposition=True)
 
 if not continue_training['continue']:

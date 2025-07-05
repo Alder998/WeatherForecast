@@ -134,8 +134,9 @@ class PredictionService:
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
         if 'seasonal' in self.predictiveVariables:
             # Create a Prophet prediction for each grid point
-            seasonalData = self.manageProphetPredictionForStagionality(prediction_set = rawPredictionSet)
-            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData.set_axis(["seasonal"], axis=1).set_index(rawPredictionSet.index)], axis = 1)
+            seasonalData = self.manageProphetPredictionForStagionality(prediction_set = rawPredictionSet,
+                                                                       grid_points=len(gridPointData[gridPointData.columns[0]]))
+            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData["seasonal"]], axis = 1)
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
 
@@ -250,7 +251,7 @@ class PredictionService:
 
     def createProphetPrediction(self, prediction_set, dataset_depth=30, prediction_steps=1000):
 
-        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xlsx"
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred.xlsx"
         # Case: the prophet prediction does not exist for the model: create it
         # get the data to train Prophet. To avoid it to be too long, take the last 10 days
         dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
@@ -287,30 +288,30 @@ class PredictionService:
         dataWithPrediction = pd.concat([df for df in dataWithPrediction], axis=0).reset_index(drop=True)
 
         # Store the Prophet Prediction to avoid multiple computation for prediction (in the model directory)
-        rawPredictionSet = pd.concat([prediction_set, dataWithPrediction.set_index(prediction_set.index)], axis=1)
-
-        rawPredictionSet.to_excel(rootModelDirectory)
+        #rawPredictionSet = pd.concat([prediction_set, dataWithPrediction.set_index(prediction_set.index)], axis=1)
+        dataWithPrediction["seasonal"].to_excel(rootModelDirectory)
 
         return dataWithPrediction
 
-    def manageProphetPredictionForStagionality(self, prediction_set):
+    def manageProphetPredictionForStagionality(self, prediction_set, grid_points):
 
         # Read the root model directory
-        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\propet_pred.xlsx"
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred.xlsx"
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=500)
             return predictionData
         # Case: the prophet prediction does exist for the model
-        if os.path.exists(rootModelDirectory):
+        elif os.path.exists(rootModelDirectory):
             # read the file
             predictionData = pd.read_excel(rootModelDirectory)
-            if len(predictionData[predictionData.columns[0]]) < self.prediction_steps:
+            if len(predictionData[predictionData.columns[0]]) > (self.prediction_steps * grid_points):
+                print("Reading and adapting existing xlsx-based prophet prediction...")
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=500)
                 return predictionData
 
 
