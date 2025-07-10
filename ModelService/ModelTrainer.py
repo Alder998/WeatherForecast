@@ -7,7 +7,7 @@ modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature'
-start_date = '2024-04-29'
+start_date = '2025-01-29'
 end_date = '2025-04-29'
 trainingEpochs = 3
 timeSplit = True
@@ -15,7 +15,7 @@ spaceSplit = True
 nearPointsPerGroup = 30
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = {'continue': False,
+continue_training = {'continue': True,
                      'new_epochs': 7}
 
 # Set the model name
@@ -30,8 +30,8 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['year','month','day','hour','latitude','longitude','seasonal'],
-                                                   timeVariables=['year','month','day','hour'],
+                                                   predictiveVariables=['month','day','hour','latitude','longitude'],
+                                                   timeVariables=['month','day','hour'],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
                                                    space_split=spaceSplit,
@@ -39,7 +39,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split_method = "radius",
                                                    plot_space_split=False,
                                                    modelName=modelName,
-                                                   time_split_method="sparse_weekly",
+                                                   time_split_method="uniform",
                                                    seasonal_decomposition=True)
 
 if not continue_training['continue']:

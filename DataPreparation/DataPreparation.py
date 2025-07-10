@@ -139,9 +139,9 @@ class DataPreparation:
         # Distinguish if labels or set
         if labels:
             # Target columns is just needed here
-            targetColumn = datasetFinal.drop(columns=['year', 'month', 'day', 'hour']).columns[0]
+            targetColumn = datasetFinal.drop(columns=timeVariables).columns[0]
             newSizeData = [group[targetColumn].to_numpy().reshape(-1, 1) for _,
-            group in datasetFinal.groupby(['year', 'month', 'day', 'hour'])]
+            group in datasetFinal.groupby(timeVariables)]
         else:
             newSizeData = [group.to_numpy() for _, group in datasetFinal.groupby(timeVariables)]
 
@@ -377,8 +377,15 @@ class DataPreparation:
         # Now, make the values as array
         train_set = self.adaptDataForModel(trainSet, predictiveVariables, labels = False, timeVariables=timeVariables)
         test_set = self.adaptDataForModel(testSet, predictiveVariables, labels = False, timeVariables=timeVariables)
-        train_labels = self.adaptDataForModel(trainSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, timeVariables=timeVariables)
-        test_labels = self.adaptDataForModel(testSet, ['year', 'month', 'day', 'hour', variableToPredict], labels = True, timeVariables=timeVariables)
+        # Filter the predictive Variables for labels (there must be only time variables, whatever they are, and the variable to predict)
+        predictiveVariables_labels = []
+        for pv in predictiveVariables:
+            if (pv.lower() != "latitude") & (pv.lower() != "longitude"):
+                predictiveVariables_labels.append(pv)
+        predictiveVariables_labels.append(variableToPredict)
+
+        train_labels = self.adaptDataForModel(trainSet, predictiveVariables_labels, labels = True, timeVariables=timeVariables)
+        test_labels = self.adaptDataForModel(testSet, predictiveVariables_labels, labels = True, timeVariables=timeVariables)
 
         # Remove the data that are not in the desired shape
         train_set = self.cleanTrainAndTestSet(train_set)
