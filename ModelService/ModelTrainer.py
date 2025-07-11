@@ -6,7 +6,7 @@ import ModelService as model
 modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
-variableToPredict = 'temperature'
+variableToPredict = 'temperature_residual'
 start_date = '2025-01-29'
 end_date = '2025-04-29'
 trainingEpochs = 3
@@ -15,7 +15,7 @@ spaceSplit = True
 nearPointsPerGroup = 30
 test_size = 0.20
 # flag to take an existing Model, and continue the training
-continue_training = {'continue': True,
+continue_training = {'continue': False,
                      'new_epochs': 7}
 
 # Set the model name
@@ -30,8 +30,9 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    start_date=start_date,
                                                    end_date=end_date,
                                                    test_size=test_size,
-                                                   predictiveVariables=['month','day','hour','latitude','longitude'],
-                                                   timeVariables=['month','day','hour'],
+                                                   predictiveVariables=["year", "month", "day", "hour", "latitude",
+                                                                        "longitude", "seasonal"],
+                                                   timeVariables=["year", "month", "day", "hour"],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,
                                                    space_split=spaceSplit,
@@ -39,7 +40,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    space_split_method = "radius",
                                                    plot_space_split=False,
                                                    modelName=modelName,
-                                                   time_split_method="uniform",
+                                                   time_split_method="sparse_weekly",
                                                    seasonal_decomposition=True)
 
 if not continue_training['continue']:
@@ -47,14 +48,14 @@ if not continue_training['continue']:
     # Train the Model
     # Model Structure
     structure = {'FF': [500, 500],
-                 'LSTM': [128, 128, 128],
+                 'LSTM': [64, 64, 64],
                  'Conv1D': [64, 64, 64],
                  'Conv2D': [],
                  'Conv2DLSTM': []}
     model.ModelService(train_set, test_set, train_labels, test_labels).NNModel(modelStructure=structure,
                                                                                trainingEpochs=trainingEpochs,
-                                                                               dropout_FF=0.05,
-                                                                               dropout_LSTM=0.05,
+                                                                               dropout_FF=0.20,
+                                                                               dropout_LSTM=0.20,
                                                                                standardize=True,
                                                                                return_seq_last_rec_layer=False,
                                                                                save_name=modelName)

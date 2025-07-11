@@ -24,7 +24,7 @@ predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded
 # Report Part
 try:
     animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dataFrame=predictions,
-                                                                    weatherVariable=model_info["target_variable"],
+                                                                    weatherVariable=model_info["target_variable"].replace("_residual", ""),
                                                                     start_date=None,
                                                                     end_date=None,
                                                                     colorScale="rainbow",
@@ -35,5 +35,5 @@ except:
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
                                                                                      city = 'Milano',
-                                                                                     predictedVariable=model_info["target_variable"],
+                                                                                     predictedVariable=model_info["target_variable"].replace("_residual", ""),
                                                                                      confidence_levels=False)

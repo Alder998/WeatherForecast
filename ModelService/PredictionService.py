@@ -185,12 +185,22 @@ class PredictionService:
             # Find the variable name from model name to call the prediction column (Model name will have always the same order)
             df_prediction = pd.DataFrame(predictions_original_scale.reshape(-1, 1), columns=[predictedVariable])
 
+            # If the variable predicted is the residuals, then add the prediction to the seasonal part
+            if "_residual" in predictedVariable:
+                df_prediction = (pd.Series(df_prediction[predictedVariable], index=predictionSet_df.index) +
+                                 predictionSet_df["seasonal"])
+                # then, change the column name for re-usability
+                df_prediction = pd.DataFrame(df_prediction).rename(columns = {0 : predictedVariable})
+
             # Concatenate the prediction with the prediction set
-            prediction_df_complete = pd.concat([predictionSet_df.reset_index(drop=True), df_prediction], axis = 1)
+            prediction_df_complete = pd.concat([predictionSet_df,
+                                                df_prediction.dropna().set_index(predictionSet_df.index)], axis = 1)
             # Keep the useful columns, useful for the prediction display
             prediction_df_complete = prediction_df_complete[['date','lng','lat',predictedVariable]]
             prediction_df_complete = prediction_df_complete.set_axis(['date', 'longitude', 'latitude',
                                                                       predictedVariable], axis = 1)
+            # Change the variable name to be shown in the report
+            prediction_df_complete = prediction_df_complete.rename(columns = {predictedVariable : predictedVariable.replace("_residual", "")})
 
         else:
             n_iter = n_iter

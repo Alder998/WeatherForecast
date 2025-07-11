@@ -411,12 +411,14 @@ class DataPreparation:
         data = self.getDataWindow(start_date=start_date, end_date=end_date)
         # Implementation of a seasonal decomposition method to be able to isolate the seasonal term
         if seasonal_decomposition:
-            data = self.applySeasonalDemposition (data, target_variable=variableToPredict)
+            data = self.applySeasonalDemposition (data, target_variable=variableToPredict.replace("_residual", ""))
+            if "residual" in variableToPredict:
+                data = data.rename(columns = {"residual" : variableToPredict.replace("_residual", "")})
         # Train-test split
         train_set, test_set, train_labels, test_labels = self.timeAndSpaceSplit(dataset=data,
                                                                 test_size=test_size,
                                                                 predictiveVariables=predictiveVariables,
-                                                                variableToPredict=variableToPredict,
+                                                                variableToPredict=variableToPredict.replace("_residual", ""),
                                                                 space_split=space_split,
                                                                 time_split=time_split,
                                                                 nearPointsPerGroup = nearPointsPerGroup,
@@ -456,7 +458,7 @@ class DataPreparation:
     def applySeasonalDemposition (self, dataset, target_variable):
 
         # Apply the decomposition to each point of the grid
-        seasonal_db = []
+        ts_decomposed_db = []
         dataset["key"] = dataset["latitude"].astype(str) + '_' + dataset["longitude"].astype(str)
         for i, singleArea in enumerate(dataset["key"].unique()):
             print("Applying seasonal Decomposition - " + str(round((i/len(dataset["key"].unique())) * 100, 2)) + "% ...")
@@ -471,8 +473,11 @@ class DataPreparation:
             residual = res.resid
 
             # Concatenate the seasonality component to the actual database
-            dataset_time["seasonal"] = pd.DataFrame(seasonal)
-            seasonal_db.append(dataset_time)
-        seasonal_db = pd.concat([df for df in seasonal_db], axis = 0).reset_index(drop=True)
+            dataset_time["trend"] = pd.DataFrame(seasonal)
+            dataset_time["residual"] = pd.DataFrame(trend)
+            dataset_time["seasonal"] = pd.DataFrame(residual)
+            ts_decomposed_db.append(dataset_time)
 
-        return seasonal_db.drop(columns=["key"])
+        ts_decomposed_db = pd.concat([df for df in ts_decomposed_db], axis = 0).reset_index(drop=True)
+
+        return ts_decomposed_db.drop(columns=["key"])
