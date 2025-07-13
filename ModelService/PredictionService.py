@@ -275,7 +275,7 @@ class PredictionService:
         for i, singleCoord in enumerate(dataFromQuery["key"].unique()):
             dataFromQuery_time = dataFromQuery[dataFromQuery["key"] == singleCoord].reset_index(drop=True)
             dataFromQuery_time = dataFromQuery_time[["date",
-                                 self.variableToPredict]].rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict:"y"})
+                                 self.variableToPredict.replace("_residual", "")]].rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict.replace("_residual", ""):"y"})
             # Fit prophet
             print("Adding Prophet Predictions to the model - " + str(round((i/len(dataFromQuery["key"].unique())) * 100, 2)) + "% ...")
             m = Prophet(

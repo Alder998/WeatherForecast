@@ -1,6 +1,8 @@
 # Data Preparation Class (mainly functional)
 import math
 import os
+import sys
+
 from statsmodels.tsa.seasonal import STL
 from datetime import datetime
 from pvlib import solarposition
