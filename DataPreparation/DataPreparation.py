@@ -107,7 +107,6 @@ class DataPreparation:
         if 'solar angle' in predictiveVariables:
             print('computing solar angle...')
             datasetFinal = self.computeSolarInclinationFromDataFrame(datasetFinal)
-
         if 'hour_sin' in predictiveVariables:
             print('computing hour sin...')
             datasetFinal = datasetFinal.copy()
@@ -475,9 +474,9 @@ class DataPreparation:
             residual = res.resid
 
             # Concatenate the seasonality component to the actual database
-            dataset_time["trend"] = pd.DataFrame(seasonal)
-            dataset_time["residual"] = pd.DataFrame(trend)
-            dataset_time["seasonal"] = pd.DataFrame(residual)
+            dataset_time["trend"] = pd.DataFrame(trend)
+            dataset_time["residual"] = pd.DataFrame(residual)
+            dataset_time["seasonal"] = pd.DataFrame(seasonal)
             ts_decomposed_db.append(dataset_time)
 
         ts_decomposed_db = pd.concat([df for df in ts_decomposed_db], axis = 0).reset_index(drop=True)

@@ -14,7 +14,7 @@ modelName = 'small-bidirectional-LSMT-uniform_time'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature_residual'
-start_date = '2024-02-01'
+start_date = '2024-07-11'
 end_date = '2025-07-11'
 trainingEpochs = 3
 timeSplit = True
