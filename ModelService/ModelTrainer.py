@@ -38,7 +38,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    end_date=end_date,
                                                    test_size=test_size,
                                                    predictiveVariables=["year", "month", "day", "hour", "latitude",
-                                                                        "longitude", "seasonal"],
+                                                                        "longitude", "seasonal", "trend"],
                                                    timeVariables=["year", "month", "day", "hour"],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,

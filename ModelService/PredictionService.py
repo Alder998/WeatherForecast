@@ -132,11 +132,15 @@ class PredictionService:
             print('computing month cos...')
             rawPredictionSet = rawPredictionSet.copy()
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
-        if 'seasonal' in self.predictiveVariables:
+        if ('seasonal' in self.predictiveVariables) | ('trend' in self.predictiveVariables):
             # Create a Prophet prediction for each grid point
-            seasonalData = self.manageProphetPredictionForStagionality(prediction_set = rawPredictionSet,
+            prophetData = self.manageProphetPredictionForStagionality(prediction_set = rawPredictionSet,
                                                                        grid_points=len(gridPointData[gridPointData.columns[0]]))
-            rawPredictionSet = pd.concat([rawPredictionSet, seasonalData["seasonal"]], axis = 1)
+            if 'seasonal' in self.predictiveVariables:
+                rawPredictionSet = pd.concat([rawPredictionSet, prophetData["seasonal"]], axis = 1)
+            if 'trend' in self.predictiveVariables:
+                rawPredictionSet = pd.concat([rawPredictionSet, prophetData["trend"]], axis=1)
+
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
 
@@ -288,18 +292,22 @@ class PredictionService:
             # fit the model
             m.fit(dataFromQuery_time)
             # Create future Dataframe + predict
-            future = m.make_future_dataframe(periods=prediction_steps, freq='H')
+            future = m.make_future_dataframe(periods=prediction_steps, freq='h')
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
             # Extract Seasonality
             seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly']).values
-            dataWithPrediction.append(pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1))
+            # Extract Trend
+            trend = pd.DataFrame(forecast["trend"].values).set_axis(["trend"], axis=1)
+            seasonality = pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1)
+            prophet_params = pd.concat([seasonality, trend], axis = 1)
+            dataWithPrediction.append(prophet_params)
         dataWithPrediction = pd.concat([df for df in dataWithPrediction], axis=0).reset_index(drop=True)
 
         # Store the Prophet Prediction to avoid multiple computation for prediction (in the model directory)
         #rawPredictionSet = pd.concat([prediction_set, dataWithPrediction.set_index(prediction_set.index)], axis=1)
-        dataWithPrediction["seasonal"].to_excel(rootModelDirectory)
+        dataWithPrediction.to_excel(rootModelDirectory)
 
         return dataWithPrediction
 
@@ -310,8 +318,8 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=500)
-            return predictionData
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+            return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
             # read the file
@@ -321,8 +329,8 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=500)
-                return predictionData
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+                return predictionData[:self.prediction_steps]
 
 
 
