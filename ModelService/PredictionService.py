@@ -191,8 +191,7 @@ class PredictionService:
 
             # If the variable predicted is the residuals, then add the prediction to the seasonal part
             if "_residual" in predictedVariable:
-                df_prediction = (pd.Series(df_prediction[predictedVariable], index=predictionSet_df.index) +
-                                 predictionSet_df["seasonal"])
+                df_prediction = (pd.Series(df_prediction[predictedVariable], index=predictionSet_df.index) + predictionSet_df["seasonal"])
                 # then, change the column name for re-usability
                 df_prediction = pd.DataFrame(df_prediction).rename(columns = {0 : predictedVariable})
 
@@ -286,13 +285,13 @@ class PredictionService:
                 yearly_seasonality=True,
                 weekly_seasonality=True,
                 daily_seasonality=True,
-                #seasonality_mode='additive',
+                seasonality_mode='additive',
                 #changepoint_prior_scale=0.0
             )
             # fit the model
             m.fit(dataFromQuery_time)
             # Create future Dataframe + predict
-            future = m.make_future_dataframe(periods=prediction_steps, freq='h')
+            future = m.make_future_dataframe(periods=prediction_steps, freq='H')
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
