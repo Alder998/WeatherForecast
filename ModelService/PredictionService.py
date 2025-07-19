@@ -264,7 +264,7 @@ class PredictionService:
 
     def createProphetPrediction(self, prediction_set, dataset_depth=30, prediction_steps=1000):
 
-        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred.xlsx"
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred_" + self.variableToPredict.replace("_residual", "") + ".xlsx"
         # Case: the prophet prediction does not exist for the model: create it
         # get the data to train Prophet. To avoid it to be too long, take the last 10 days
         dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
@@ -277,6 +277,9 @@ class PredictionService:
         print("Adding Prophet Predictions to the model...")
         for i, singleCoord in enumerate(dataFromQuery["key"].unique()):
             dataFromQuery_time = dataFromQuery[dataFromQuery["key"] == singleCoord].reset_index(drop=True)
+            # Sort by date
+            dataFromQuery_time = dataFromQuery_time.sort_values(by="date").reset_index(drop=True)
+            # Isolate the columns and rename it
             dataFromQuery_time = dataFromQuery_time[["date",
                                  self.variableToPredict.replace("_residual", "")]].rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict.replace("_residual", ""):"y"})
             # Fit prophet
@@ -291,12 +294,13 @@ class PredictionService:
             # fit the model
             m.fit(dataFromQuery_time)
             # Create future Dataframe + predict
-            future = m.make_future_dataframe(periods=prediction_steps, freq='H')
+            future = m.make_future_dataframe(periods=prediction_steps, freq='h')
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
             # Extract Seasonality
-            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly']).values
+            # Punk solution: add the mean to the seasonality
+            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + dataFromQuery_time["y"].mean()).values
             # Extract Trend
             trend = pd.DataFrame(forecast["trend"].values).set_axis(["trend"], axis=1)
             seasonality = pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1)
@@ -313,11 +317,11 @@ class PredictionService:
     def manageProphetPredictionForStagionality(self, prediction_set, grid_points):
 
         # Read the root model directory
-        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred.xlsx"
+        rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred_" + self.variableToPredict.replace("_residual", "") + ".xlsx"
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -328,7 +332,7 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=1000)
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
                 return predictionData[:self.prediction_steps]
 
 
