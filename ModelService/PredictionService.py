@@ -289,7 +289,7 @@ class PredictionService:
                 weekly_seasonality=True,
                 daily_seasonality=True,
                 seasonality_mode='additive',
-                #changepoint_prior_scale=0.0
+                changepoint_prior_scale=1e-8
             )
             # fit the model
             m.fit(dataFromQuery_time)
@@ -299,8 +299,8 @@ class PredictionService:
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
             # Extract Seasonality
-            # Punk solution: add the mean to the seasonality
-            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + dataFromQuery_time["y"].mean()).values
+            # Add trend to seasonality
+            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + forecast["trend"]).values
             # Extract Trend
             trend = pd.DataFrame(forecast["trend"].values).set_axis(["trend"], axis=1)
             seasonality = pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1)
@@ -321,7 +321,7 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=10, prediction_steps=100)
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -332,17 +332,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=10, prediction_steps=100)
                 return predictionData[:self.prediction_steps]
-
-
-
-
-
-
-
-
-
-
-
-
