@@ -191,7 +191,7 @@ class PredictionService:
 
             # If the variable predicted is the residuals, then add the prediction to the seasonal part
             if "_residual" in predictedVariable:
-                df_prediction = (pd.Series(df_prediction[predictedVariable], index=predictionSet_df.index) + predictionSet_df["seasonal"])
+                df_prediction = df_prediction[predictedVariable].reset_index(drop=True) + predictionSet_df["seasonal"].reset_index(drop=True)
                 # then, change the column name for re-usability
                 df_prediction = pd.DataFrame(df_prediction).rename(columns = {0 : predictedVariable})
 
@@ -321,7 +321,7 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=10, prediction_steps=100)
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -332,5 +332,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=10, prediction_steps=100)
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
                 return predictionData[:self.prediction_steps]
