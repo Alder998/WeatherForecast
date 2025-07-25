@@ -288,8 +288,8 @@ class PredictionService:
                 yearly_seasonality=True,
                 weekly_seasonality=True,
                 daily_seasonality=True,
-                seasonality_mode='additive',
-                changepoint_prior_scale=1e-8
+                seasonality_mode='multiplicative',
+                changepoint_prior_scale=0.3
             )
             # fit the model
             m.fit(dataFromQuery_time)
@@ -321,7 +321,7 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
+            predictionData = self.createProphetPrediction(prediction_set, dataset_depth=30, prediction_steps=100)
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -332,5 +332,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=365, prediction_steps=100)
+                predictionData = self.createProphetPrediction(prediction_set, dataset_depth=30, prediction_steps=100)
                 return predictionData[:self.prediction_steps]

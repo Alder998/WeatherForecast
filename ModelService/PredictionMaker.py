@@ -34,6 +34,6 @@ except:
     print("No Connection for the map report! Passing to the following Report...")
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Milano',
+                                                                                     city = 'Lavagna',
                                                                                      predictedVariable=model_info["target_variable"].replace("_residual", ""),
                                                                                      confidence_levels=False)
