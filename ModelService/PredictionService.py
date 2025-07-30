@@ -279,9 +279,13 @@ class PredictionService:
             # Sort by date
             dataFromQuery_time = dataFromQuery_time.sort_values(by="date").reset_index(drop=True)
 
-            # Compute the mean of daily observations, use it as a trend
+            # Compute the mean of daily observations, use it as a trend component
             # Extract the trend ad mean of daily observations
-            trend = dataFromQuery_time[self.variableToPredict.replace("_residual", "")].rolling(window=24, center=False).mean()
+            trend_df = dataFromQuery_time[["date", self.variableToPredict.replace("_residual", "")]]
+            # rename columns
+            trend_df = trend_df.rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict.replace("_residual", ""):"y"})
+            # compute the daily moving average to have a trend proxy
+            trend_df["y"] = trend_df["y"].rolling(window=24, center=False).mean()
 
             # Isolate the columns and rename it
             dataFromQuery_time = dataFromQuery_time[["date",
@@ -302,9 +306,24 @@ class PredictionService:
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
+            # Make the prediction for the trend component
+            mt = Prophet(
+                yearly_seasonality=True,
+                weekly_seasonality=True,
+                daily_seasonality=True,
+                seasonality_mode='additive',
+                #changepoint_prior_scale=0.01
+            )
+            # fit the model
+            mt.fit(trend_df)
+            # Create future Dataframe + predict
+            future_trend = mt.make_future_dataframe(periods=prediction_steps, freq='h')
+            forecast_trend = mt.predict(future_trend)
+            forecast_trend = forecast_trend[forecast_trend['ds'] > dataFromQuery_time['ds'].max()]
+
             # Extract Seasonality
             # Add trend to seasonality
-            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + trend).values
+            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + forecast_trend["yhat"]).values
             # Extract Trend
             trend = pd.DataFrame(forecast["trend"].values).set_axis(["trend"], axis=1)
             seasonality = pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1)
@@ -325,7 +344,7 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(dataset_depth=30, prediction_steps=100)
+            predictionData = self.createProphetPrediction(dataset_depth=365, prediction_steps=100)
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -336,5 +355,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(dataset_depth=30, prediction_steps=100)
+                predictionData = self.createProphetPrediction(dataset_depth=365, prediction_steps=100)
                 return predictionData[:self.prediction_steps]
