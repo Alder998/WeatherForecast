@@ -1,7 +1,6 @@
 # Class that allow to make prediction on future data and visualize them so to understand if the model has scored well
 import os
 from datetime import datetime, timedelta
-
 import numpy as np
 import pandas as pd
 from prophet import Prophet
@@ -11,8 +10,6 @@ from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from DataPreparation import DataPreparation as dt
 import tensorflow as tf
-from pvlib import solarposition
-from pvlib.solarposition import get_solarposition
 import joblib
 
 # Set silent option on downcasting to avoid warning
@@ -21,7 +18,7 @@ pd.set_option('future.no_silent_downcasting', True)
 class PredictionService:
 
     def __init__(self, model, grid_step, start_date, prediction_steps, predictiveVariables, variableToPredict,
-                 timeVariables):
+                 timeVariables, prophet_params):
         self.model = model
         self.grid_step = grid_step
         self.start_date = start_date
@@ -29,6 +26,7 @@ class PredictionService:
         self.predictiveVariables = predictiveVariables
         self.variableToPredict = variableToPredict
         self.timeVariables = timeVariables
+        self.prophet_params = prophet_params
         pass
 
     # Utils-like function to standardize the data
@@ -190,6 +188,7 @@ class PredictionService:
 
             # If the variable predicted is the residuals, then add the prediction to the seasonal part
             if "_residual" in predictedVariable:
+                # Add the seasonality it is a Residual Learning Model
                 df_prediction = df_prediction[predictedVariable].reset_index(drop=True) + predictionSet_df["seasonal"].reset_index(drop=True)
                 # then, change the column name for re-usability
                 df_prediction = pd.DataFrame(df_prediction).rename(columns = {0 : predictedVariable})
@@ -285,7 +284,7 @@ class PredictionService:
             # rename columns
             trend_df = trend_df.rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict.replace("_residual", ""):"y"})
             # compute the daily moving average to have a trend proxy
-            trend_df["y"] = trend_df["y"].rolling(window=24, center=False).mean()
+            trend_df["y"] = trend_df["y"].rolling(window=self.prophet_params["rolling_window_trend"], center=False).mean()
 
             # Isolate the columns and rename it
             dataFromQuery_time = dataFromQuery_time[["date",
@@ -342,9 +341,17 @@ class PredictionService:
         # Read the root model directory
         rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred_" + self.variableToPredict.replace("_residual", "") + ".xlsx"
 
+        # If a re-train is asked, delete the existing .xslx, and train it again with different params
+        if self.prophet_params["re-train"]:
+            try:
+                print("INFO: Deleting the existing Prophet model for re-training...")
+                os.remove(rootModelDirectory)
+            except:
+                print("INFO: Prophet Model not present! Training it from scratch...")
+
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(dataset_depth=365, prediction_steps=100)
+            predictionData = self.createProphetPrediction(dataset_depth=self.prophet_params["dataset_depth"], prediction_steps=self.prophet_params["prediction_steps"])
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -355,5 +362,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(dataset_depth=365, prediction_steps=100)
+                predictionData = self.createProphetPrediction(dataset_depth=self.prophet_params["dataset_depth"], prediction_steps=self.prophet_params["prediction_steps"])
                 return predictionData[:self.prediction_steps]

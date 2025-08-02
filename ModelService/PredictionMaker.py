@@ -17,7 +17,13 @@ classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherFore
                                   prediction_steps=96,
                                   predictiveVariables=model_info["predictive_variables"],
                                   variableToPredict=model_info["target_variable"],
-                                  timeVariables=model_info["time_variables"])
+                                  timeVariables=model_info["time_variables"],
+                                  prophet_params = {
+                                      "re-train": True,
+                                      "dataset_depth": 100,
+                                      "prediction_steps": 100,
+                                      "rolling_window_trend": 4,
+                                  })
 # Execute the prediction
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
@@ -34,6 +40,6 @@ except:
     print("No Connection for the map report! Passing to the following Report...")
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Lavagna',
+                                                                                     city = 'Milano',
                                                                                      predictedVariable=model_info["target_variable"].replace("_residual", ""),
                                                                                      confidence_levels=False)
