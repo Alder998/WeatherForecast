@@ -145,7 +145,7 @@ class LocalizedWeather:
 
     # Plotting Function to compare weather of two different cities
 
-    def compareWeatherForCities(self, city1, city2, start_date, end_date, aggregation = 'hourly', grid_step = 0.22):
+    def compareWeatherForCities(self, city1, city2, start_date, end_date, aggregation = 'hourly', grid_step = 0.22, save=None):
 
         city1Filter, distances1 = self.getFilteredDatasetForCity(city1, start_date, end_date, aggregation, grid_step)
         city2Filter, distances2 = self.getFilteredDatasetForCity(city2, start_date, end_date, aggregation, grid_step)
@@ -157,7 +157,7 @@ class LocalizedWeather:
         city2Filter = city2Filter.sort_values(by='date', ascending=True)
         city2Filter = city2Filter.set_index(pd.to_datetime(city2Filter['date']))
 
-        fig, axes = plt.subplots(3, 2, figsize=(15, 8))
+        fig, axes = plt.subplots(3, 2, figsize=(23, 12))
 
         # Temperature
         axes[0, 0].plot(city1Filter['temperature'], label=city1, color='blue')
@@ -201,6 +201,8 @@ class LocalizedWeather:
             fontsize=14, fontweight="bold")
 
         plt.tight_layout()
+        if save["save"]!=None:
+            plt.savefig(save["save_name"], dpi = 800)
         plt.show()
 
     # Method to have weather Prediction plot from DataFrame

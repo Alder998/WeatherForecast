@@ -1,11 +1,16 @@
 # Class that allow to make prediction on future data and visualize them so to understand if the model has scored well
 import os
+import sys
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from prophet import Prophet
 from dotenv import load_dotenv
 from sklearn.preprocessing import StandardScaler
+
+# Add all folders for batch execution
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from DataPreparation import DataPreparation as dt
@@ -14,6 +19,7 @@ import joblib
 
 # Set silent option on downcasting to avoid warning
 pd.set_option('future.no_silent_downcasting', True)
+
 
 class PredictionService:
 
@@ -260,13 +266,13 @@ class PredictionService:
 
         return tcheck
 
-    def createProphetPrediction(self, dataset_depth=30, prediction_steps=1000):
+    def createProphetPrediction(self):
 
         rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred_" + self.variableToPredict.replace("_residual", "") + ".xlsx"
         # Case: the prophet prediction does not exist for the model: create it
         # get the data to train Prophet. To avoid it to be too long, take the last 10 days
         dataFromQuery = self.dataClass().executeQuery('SELECT * FROM public."WeatherForRegion_' + str(self.grid_step) +
-                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=dataset_depth)) + "'" + ' AND ' + "'" +
+                                             '" WHERE date BETWEEN ' + "'" + str(datetime.strptime(self.start_date, "%Y-%m-%d") - timedelta(days=self.prophet_params["dataset_depth"])) + "'" + ' AND ' + "'" +
                                              self.start_date + "'")
 
         # Isolate each point into the grid
@@ -301,7 +307,7 @@ class PredictionService:
             # fit the model
             m.fit(dataFromQuery_time)
             # Create future Dataframe + predict
-            future = m.make_future_dataframe(periods=prediction_steps, freq='h')
+            future = m.make_future_dataframe(periods=self.prophet_params["prediction_steps"], freq='h')
             forecast = m.predict(future)
             forecast = forecast[forecast['ds'] > dataFromQuery_time['ds'].max()]
 
@@ -316,7 +322,7 @@ class PredictionService:
             # fit the model
             mt.fit(trend_df)
             # Create future Dataframe + predict
-            future_trend = mt.make_future_dataframe(periods=prediction_steps, freq='h')
+            future_trend = mt.make_future_dataframe(periods=self.prophet_params["prediction_steps"], freq='h')
             forecast_trend = mt.predict(future_trend)
             forecast_trend = forecast_trend[forecast_trend['ds'] > dataFromQuery_time['ds'].max()]
 
