@@ -313,10 +313,10 @@ class PredictionService:
 
             # Make the prediction for the trend component
             mt = Prophet(
-                yearly_seasonality=True,
-                weekly_seasonality=True,
-                daily_seasonality=True,
-                seasonality_mode='additive',
+                #yearly_seasonality=True,
+                #weekly_seasonality=True,
+                #daily_seasonality=True,
+                #seasonality_mode='additive',
                 #changepoint_prior_scale=0.01
             )
             # fit the model
