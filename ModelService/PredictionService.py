@@ -7,6 +7,7 @@ import pandas as pd
 from prophet import Prophet
 from dotenv import load_dotenv
 from sklearn.preprocessing import StandardScaler
+from statsmodels.tsa.seasonal import STL
 
 # Add all folders for batch execution
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -289,8 +290,13 @@ class PredictionService:
             trend_df = dataFromQuery_time[["date", self.variableToPredict.replace("_residual", "")]]
             # rename columns
             trend_df = trend_df.rename(columns = {"date":"ds"}).rename(columns = {self.variableToPredict.replace("_residual", ""):"y"})
-            # compute the daily moving average to have a trend proxy
-            trend_df["y"] = trend_df["y"].rolling(window=self.prophet_params["rolling_window_trend"], center=False).mean()
+            # compute the STL daily trend to have a trend proxy
+            # Logging
+            print("INFO: Computing trend with STL...")
+            stl = STL(trend_df["y"], period=self.prophet_params["rolling_window_trend"])
+            res = stl.fit()
+            trend_df["y"] = pd.DataFrame(res.trend)
+            #trend_df["y"] = trend_df["y"].rolling(window=self.prophet_params["rolling_window_trend"], center=False).mean()
 
             # Isolate the columns and rename it
             dataFromQuery_time = dataFromQuery_time[["date",
@@ -313,10 +319,10 @@ class PredictionService:
 
             # Make the prediction for the trend component
             mt = Prophet(
-                #yearly_seasonality=True,
-                #weekly_seasonality=True,
-                #daily_seasonality=True,
-                #seasonality_mode='additive',
+                yearly_seasonality=True,
+                weekly_seasonality=True,
+                daily_seasonality=True,
+                seasonality_mode='additive',
                 #changepoint_prior_scale=0.01
             )
             # fit the model
@@ -357,7 +363,7 @@ class PredictionService:
 
         # Case: the prophet prediction does not exist for the model
         if not os.path.exists(rootModelDirectory):
-            predictionData = self.createProphetPrediction(dataset_depth=self.prophet_params["dataset_depth"], prediction_steps=self.prophet_params["prediction_steps"])
+            predictionData = self.createProphetPrediction()
             return predictionData[:self.prediction_steps]
         # Case: the prophet prediction does exist for the model
         elif os.path.exists(rootModelDirectory):
@@ -368,5 +374,5 @@ class PredictionService:
                 return predictionData[:self.prediction_steps]
             else:
                 # Update overwriting: no other choice
-                predictionData = self.createProphetPrediction(dataset_depth=self.prophet_params["dataset_depth"], prediction_steps=self.prophet_params["prediction_steps"])
+                predictionData = self.createProphetPrediction()
                 return predictionData[:self.prediction_steps]

@@ -20,8 +20,8 @@ classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherFore
                                   variableToPredict=model_info["target_variable"],
                                   timeVariables=model_info["time_variables"],
                                   prophet_params = {
-                                      "re-train": False,
-                                      "dataset_depth": 365,
-                                      "prediction_steps": 365,
+                                      "re-train": True,
+                                      "dataset_depth": 30,
+                                      "prediction_steps": 100,
                                       "rolling_window_trend": 24,
                                   }).createProphetPrediction()
