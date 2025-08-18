@@ -139,11 +139,8 @@ class PredictionService:
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
         if ('seasonal' in self.predictiveVariables) | ('trend' in self.predictiveVariables):
             # Create a Prophet prediction for each grid point
-            prophetData = self.manageProphetPredictionForStagionality(grid_points=len(gridPointData[gridPointData.columns[0]]))
-            if 'seasonal' in self.predictiveVariables:
-                rawPredictionSet = pd.concat([rawPredictionSet, prophetData["seasonal"]], axis = 1)
-            if 'trend' in self.predictiveVariables:
-                rawPredictionSet = pd.concat([rawPredictionSet, prophetData["trend"]], axis=1)
+            prophetData = self.manageProphetPredictionForSeasonality(grid_points=len(gridPointData[gridPointData.columns[0]]))
+            rawPredictionSet = pd.concat([rawPredictionSet, prophetData["prophet_pred"]], axis = 1)
 
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
@@ -196,7 +193,7 @@ class PredictionService:
             # If the variable predicted is the residuals, then add the prediction to the seasonal part
             if "_residual" in predictedVariable:
                 # Add the seasonality it is a Residual Learning Model
-                df_prediction = df_prediction[predictedVariable].reset_index(drop=True) + predictionSet_df["seasonal"].reset_index(drop=True)
+                df_prediction = df_prediction[predictedVariable].reset_index(drop=True) + predictionSet_df["prophet_pred"].reset_index(drop=True)
                 # then, change the column name for re-usability
                 df_prediction = pd.DataFrame(df_prediction).rename(columns = {0 : predictedVariable})
 
@@ -336,9 +333,7 @@ class PredictionService:
             # Add trend to seasonality
             seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + forecast_trend["yhat"]).values
             # Extract Trend
-            trend = pd.DataFrame(forecast["trend"].values).set_axis(["trend"], axis=1)
-            seasonality = pd.DataFrame(seasonality).set_axis(["seasonal"], axis = 1)
-            prophet_params = pd.concat([seasonality, trend], axis = 1)
+            prophet_params = pd.DataFrame(seasonality).set_axis(["prophet_pred"], axis = 1)
             dataWithPrediction.append(prophet_params)
         dataWithPrediction = pd.concat([df for df in dataWithPrediction], axis=0).reset_index(drop=True)
 
@@ -348,7 +343,7 @@ class PredictionService:
 
         return dataWithPrediction
 
-    def manageProphetPredictionForStagionality(self, grid_points):
+    def manageProphetPredictionForSeasonality(self, grid_points):
 
         # Read the root model directory
         rootModelDirectory = "\\".join(self.model.split("\\")[:-1]) + "\\prophet_pred_" + self.variableToPredict.replace("_residual", "") + ".xlsx"

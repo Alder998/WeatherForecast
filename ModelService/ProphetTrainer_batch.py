@@ -23,5 +23,5 @@ classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherFore
                                       "re-train": True,
                                       "dataset_depth": 30,
                                       "prediction_steps": 100,
-                                      "rolling_window_trend": 24,
+                                      "rolling_window_trend": 300,
                                   }).createProphetPrediction()
