@@ -141,6 +141,8 @@ class PredictionService:
             # Create a Prophet prediction for each grid point
             prophetData = self.manageProphetPredictionForSeasonality(grid_points=len(gridPointData[gridPointData.columns[0]]))
             rawPredictionSet = pd.concat([rawPredictionSet, prophetData["prophet_pred"]], axis = 1)
+            # Replace "trend" and "seasonal" with "prophet_pred"
+            self.predictiveVariables = ["prophet_pred" if x in ("seasonal", "trend") else x for x in self.predictiveVariables]
 
         # Delete the 'hour' column to avoid the double counting
         rawPredictionSet = rawPredictionSet.drop(columns = ['hour','day','month'])
@@ -151,7 +153,7 @@ class PredictionService:
 
         return predictionSet, rawPredictionSet
 
-    # Class to load the model and run the pr]edictions
+    # Class to load the model and run the predictions
     def NNPredict (self, loaded_scaler=None, confidence_levels=False, n_iter=None):
 
         # Load the NN Model
@@ -331,7 +333,7 @@ class PredictionService:
 
             # Extract Seasonality
             # Add trend to seasonality
-            seasonality = (forecast['daily'] + forecast['weekly'] + forecast['yearly'] + forecast_trend["yhat"]).values
+            seasonality = (forecast_trend["yhat"] + forecast['daily'] + forecast['weekly'] + forecast['yearly']).values
             # Extract Trend
             prophet_params = pd.DataFrame(seasonality).set_axis(["prophet_pred"], axis = 1)
             dataWithPrediction.append(prophet_params)
