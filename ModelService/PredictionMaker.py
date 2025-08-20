@@ -13,7 +13,7 @@ with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model
 # Instantiate the class
 classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\" + model_name + ".h5",
                                   grid_step=model_info["grid_step"],
-                                  start_date="2025-07-31", # Must be ALWAYS the day before the latest observation
+                                  start_date="2025-08-14", # Must be ALWAYS the day before the latest observation
                                   prediction_steps=96,
                                   predictiveVariables=model_info["predictive_variables"],
                                   variableToPredict=model_info["target_variable"],
@@ -22,7 +22,7 @@ classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherFore
                                       "re-train": False,
                                       "dataset_depth": 365,
                                       "prediction_steps": 365,
-                                      "rolling_window_trend": 6,
+                                      "rolling_window_trend": 300,
                                   })
 # Execute the prediction
 predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)

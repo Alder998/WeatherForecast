@@ -1,8 +1,8 @@
 import DataService as dt
 from ReportingLibrary import Animations as ani
 
-start_date = "2025-07-10"
-end_date = "2025-08-01"
+start_date = "2025-08-01"
+end_date = "2025-08-15"
 grid_step = 0.22
 
 

@@ -11,7 +11,7 @@ comparison = locl.LocalizedWeather().compareWeatherForCities(city1 = 'Milano',
                                                              city2 = 'Lavagna',
                                                              aggregation = 'hourly',
                                                              start_date="2025-06-01",
-                                                             end_date = "2025-08-01",
+                                                             end_date = "2025-08-15",
                                                              grid_step = 0.22,
                                                              save = {"save":True,
                                                                      "save_name":r"C:\Users\alder\Downloads\Milano VS Lavagna estate 2025_agosto.png"})
