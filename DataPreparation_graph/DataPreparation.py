@@ -9,7 +9,6 @@ from pvlib import solarposition
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
-import ModelService
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from geopy.distance import geodesic
