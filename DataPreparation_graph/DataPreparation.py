@@ -73,6 +73,20 @@ class DataPreparation:
             datasetWithSolarAngle['solar angle'] = datasetWithSolarAngle['solar angle'].ffill()
         return datasetWithSolarAngle
 
+    # Utils-like function to pad the feature matrix to the correct number of nodes
+    def applyNodesPaddingForFeatures (self, feature_matrix, num_nodes_target):
+        num_nodes, num_vars, window = feature_matrix.shape
+        X_padded = np.zeros((num_nodes_target, num_vars, window), dtype=feature_matrix.dtype)
+        X_padded[:num_nodes, :, :] = feature_matrix
+        return X_padded
+
+    # Utils-like function to pad the Adjacency matrix to the correct number of nodes
+    def applyNodesPaddingForAdjacency (self, adj_matrix, num_nodes_target):
+        num_nodes = adj_matrix.shape[0]
+        A_padded = np.zeros((num_nodes_target, num_nodes_target), dtype=adj_matrix.dtype)
+        A_padded[:num_nodes, :num_nodes] = adj_matrix
+        return A_padded
+
     # Utils-like function to get the train and test size
     def getSetSize (self, set):
 
@@ -120,7 +134,7 @@ class DataPreparation:
         return train_final, test_final, val_final
 
     # Utils-like function to process data from DataFrame to Graph
-    def createAdjacencyMatrix (self, dataInDataFrameFormat, distance_threshold=100):
+    def createAdjacencyMatrix (self, dataInDataFrameFormat, padding_target, distance_threshold=100):
 
         # 1. Create the Adjacency matrix
         # 1.1. Compute node id as incremental index
@@ -144,9 +158,12 @@ class DataPreparation:
         D_inv = np.linalg.inv(D_hat)
         adj_matrix_norm = D_inv @ (adj_matrix + np.eye(adj_matrix.shape[0]))
 
+        # Apply padding to achieve the same size
+        adj_matrix_norm = self.applyNodesPaddingForAdjacency(adj_matrix_norm, padding_target)
+
         return adj_matrix_norm
 
-    def createFeaturesMatrix (self, dataInDataFrameFormat, variableToPredict=[]):
+    def createFeaturesMatrix (self, dataInDataFrameFormat, padding_target, variableToPredict=[]):
 
         # 1. get the number of unique coords
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
@@ -164,6 +181,9 @@ class DataPreparation:
             t = int(row["time_index"])
             for f_idx, feature in enumerate(variableToPredict):
                 feature_matrix[i, f_idx, t] = row[feature]
+
+        # Apply Padding for features
+        feature_matrix = self.applyNodesPaddingForFeatures(feature_matrix=feature_matrix, num_nodes_target=padding_target)
 
         return feature_matrix
 
@@ -192,31 +212,33 @@ class DataPreparation:
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
         dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date)
+        # 0.1. Extract the total number of coordinates to use it during padding
+        paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
         # 1. time-space Split with appropriate libraries
         train_set, test_set, validation_set = self.timeSpaceSplit(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                  test_size=test_size,
                                                                  validation_size=validation_size)
 
-        # 2. Create Adjacency Matrix for each one of the sets
+        # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
-        adj_matrix_norm_train = self.createAdjacencyMatrix(dataInDataFrameFormat=train_set,
-                                                                distance_threshold=distance_threshold)
+        adj_matrix_norm_train = self.createAdjacencyMatrix(dataInDataFrameFormat=train_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
         print("DATA PREPARATION - INFO (TRAIN SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_train.shape)
-        adj_matrix_norm_test = self.createAdjacencyMatrix(dataInDataFrameFormat=test_set,
-                                                                distance_threshold=distance_threshold)
+        adj_matrix_norm_test = self.createAdjacencyMatrix(dataInDataFrameFormat=test_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
         print("DATA PREPARATION - INFO (TEST SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_test.shape)
-        adj_matrix_norm_validation = self.createAdjacencyMatrix(dataInDataFrameFormat=validation_set,
-                                                                distance_threshold=distance_threshold)
+        adj_matrix_norm_validation = self.createAdjacencyMatrix(dataInDataFrameFormat=validation_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation.shape)
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
-                                                         variableToPredict=variableToPredict)
+                                                         variableToPredict=variableToPredict,
+                                                         padding_target=paddingTargetNodes)
         feature_matrix_test = self.createFeaturesMatrix(dataInDataFrameFormat=test_set,
-                                                        variableToPredict=variableToPredict)
+                                                        variableToPredict=variableToPredict,
+                                                        padding_target=paddingTargetNodes)
         feature_matrix_validation = self.createFeaturesMatrix(dataInDataFrameFormat=validation_set,
-                                                              variableToPredict=variableToPredict)
+                                                              variableToPredict=variableToPredict,
+                                                              padding_target=paddingTargetNodes)
 
         # 4. Create model-ready tensors
         sample_train, target_train = self.createModelTensors(set=feature_matrix_train, window_size=window_size, horizon=horizon)

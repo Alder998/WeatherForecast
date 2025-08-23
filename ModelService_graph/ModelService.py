@@ -24,6 +24,42 @@ class ModelService:
         self.validation_labels = validation_labels
         pass
 
+    # Utils-like function to standardize the sets according to a given dimensions
+    def standardizeSet (self, set, axis=3):
+
+        # Get the dimension you want to standardize for directly from the array
+        matrixDimension = set.shape[axis]
+
+        # Put the desired dimensions in the last position, and flatten all the other dimensions
+        X_reshaped = set.transpose(0, 1, 3, 2).reshape(-1, matrixDimension)
+
+        # Standardize along the given dimension
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X_reshaped)
+
+        # Put the numpy object in the starting shape
+        X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[2], set.shape[3]).transpose(0, 1, 2, 3)
+
+        # Save the scaler + return the scaled numpy object
+        joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\scaler.pkl")
+
+        return X_scaled
+
+    # Utils-like function to create a custom loss that would ignore padding during training phase
+    def masked_mse(self, mask):
+        mask = tf.reshape(mask, (1, -1, 1, 1))  # broadcast su (batch, nodes, features, time)
+        def loss_fn(y_true, y_pred):
+            diff = (y_true - y_pred) * mask
+            mse = tf.reduce_sum(tf.square(diff)) / tf.reduce_sum(mask)
+            return mse
+        return loss_fn
+
+    # Utils-like function to create node mask to ignore padding during training phase
+    def create_node_mask(self, num_nodes_valid, num_nodes_target):
+        mask = np.zeros((num_nodes_target,), dtype=np.float32)
+        mask[:num_nodes_valid] = 1.0
+        return mask
+
     # Utils-like function to normalize the Adjacency Matrix
     def normalize_adj_random_walk(self, A):
         A_hat = A + np.eye(A.shape[0], dtype=A.dtype)
@@ -103,14 +139,24 @@ class ModelService:
         W = self.train_set.shape[3]  # ex. 24
         H = self.train_labels.shape[3]  # ex. 96
 
+        # Standardize each one of the sets
+        print("MODEL PREPARATION - Standardizing the sets...")
+        self.train_set = self.standardizeSet(self.train_set, axis = 3)
+        self.train_labels = self.standardizeSet(self.train_labels, axis = 3)
+        self.test_set = self.standardizeSet(self.test_set, axis = 3)
+        self.test_labels = self.standardizeSet(self.test_labels, axis = 3)
+        self.validation_set = self.standardizeSet(self.validation_set, axis = 3)
+        self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3)
+
         model = self.build_graph_wavenet(
             N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train,
             channels_t=32, channels_s=32,
             n_blocks=3, dilations=(1, 2, 4), kernel_size=2
         )
 
+        node_mask = self.create_node_mask(num_nodes_valid=501, num_nodes_target=716)
         model.compile(optimizer=tf.keras.optimizers.Adam(clipnorm=1.0),
-                      loss="mse",
+                      loss=self.masked_mse(node_mask),
                       metrics=[tf.keras.metrics.MAE])
 
         # Training: A_train is "frozen" implicitly inside the training algorithm

@@ -8,7 +8,7 @@ classModule = dt.DataPreparation(grid_step=0.22)
 
 # Train-test split
 adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
-                                                                       start_date = "2025-07-01",
+                                                                       start_date = "2025-05-01",
                                                                        end_date = "2025-08-15",
                                                                        variableToPredict=["temperature"],
                                                                        test_size=0.30,
