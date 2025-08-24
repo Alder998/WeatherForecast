@@ -47,11 +47,14 @@ class ModelService:
 
     # Utils-like function to create a custom loss that would ignore padding during training phase
     def masked_mse(self, mask):
-        mask = tf.reshape(mask, (1, -1, 1, 1))  # broadcast su (batch, nodes, features, time)
+        mask = tf.reshape(mask, (1, -1, 1, 1))
+        epsilon = 1e-6
         def loss_fn(y_true, y_pred):
             diff = (y_true - y_pred) * mask
-            mse = tf.reduce_sum(tf.square(diff)) / tf.reduce_sum(mask)
-            return mse
+            squared_error = tf.square(diff)
+            num = tf.reduce_sum(squared_error)
+            denom = tf.reduce_sum(mask) * tf.cast(tf.shape(y_true)[-1], tf.float32)
+            return num / (denom + epsilon)
         return loss_fn
 
     # Utils-like function to create node mask to ignore padding during training phase
@@ -153,10 +156,10 @@ class ModelService:
             channels_t=32, channels_s=32,
             n_blocks=3, dilations=(1, 2, 4), kernel_size=2
         )
-
-        node_mask = self.create_node_mask(num_nodes_valid=501, num_nodes_target=716)
-        model.compile(optimizer=tf.keras.optimizers.Adam(clipnorm=1.0),
-                      loss=self.masked_mse(node_mask),
+        optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
+        node_mask_train = self.create_node_mask(num_nodes_valid=501, num_nodes_target=716)
+        model.compile(optimizer=optimizer,
+                      loss=self.masked_mse(node_mask_train),
                       metrics=[tf.keras.metrics.MAE])
 
         # Training: A_train is "frozen" implicitly inside the training algorithm
@@ -168,7 +171,10 @@ class ModelService:
             verbose=1
         )
 
-        # Evaluation on the test set
+        # Evaluation on the test set + recompilation to use the custom loss to cope with different dimensions in padding
+        print("MODEL EVALUATION - Re-Compiling the Model on test set for evaluation...")
+        node_mask_test = self.create_node_mask(num_nodes_valid=215, num_nodes_target=716)
+        model.compile(optimizer=optimizer, loss=self.masked_mse(node_mask_test))
         test_metrics = model.evaluate(self.test_set, self.test_labels, batch_size=4, verbose=1)
 
         return test_metrics
