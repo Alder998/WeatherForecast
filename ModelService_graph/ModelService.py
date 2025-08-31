@@ -152,12 +152,12 @@ class ModelService:
         self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3)
 
         model = self.build_graph_wavenet(
-            N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train,
+            N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
             channels_t=32, channels_s=32,
             n_blocks=3, dilations=(1, 2, 4), kernel_size=2
         )
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
-        node_mask_train = self.create_node_mask(num_nodes_valid=501, num_nodes_target=716)
+        node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=716)
         model.compile(optimizer=optimizer,
                       loss=self.masked_mse(node_mask_train),
                       metrics=[tf.keras.metrics.MAE])

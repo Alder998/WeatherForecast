@@ -158,10 +158,16 @@ class DataPreparation:
         D_inv = np.linalg.inv(D_hat)
         adj_matrix_norm = D_inv @ (adj_matrix + np.eye(adj_matrix.shape[0]))
 
+        # Memorize the set size in a dict together with the matrix
+        adj_matrix_norm_data = {}
+        adj_matrix_norm_data["size"] = adj_matrix_norm.shape[0]  # could be both 0 or 1, since the matrix is squared
+
         # Apply padding to achieve the same size
         adj_matrix_norm = self.applyNodesPaddingForAdjacency(adj_matrix_norm, padding_target)
+        # as well, store the matrix into the dict
+        adj_matrix_norm_data["matrix"] = adj_matrix_norm
 
-        return adj_matrix_norm
+        return adj_matrix_norm_data
 
     def createFeaturesMatrix (self, dataInDataFrameFormat, padding_target, variableToPredict=[]):
 
@@ -182,10 +188,16 @@ class DataPreparation:
             for f_idx, feature in enumerate(variableToPredict):
                 feature_matrix[i, f_idx, t] = row[feature]
 
+        # As done with the adjacency matrix, store the size and the matrix in a dict
+        feature_matrix_data = {}
+        feature_matrix_data["size"] = feature_matrix.shape[0]
+
         # Apply Padding for features
         feature_matrix = self.applyNodesPaddingForFeatures(feature_matrix=feature_matrix, num_nodes_target=padding_target)
+        # Now store the matrix itself
+        feature_matrix_data["matrix"] = feature_matrix
 
-        return feature_matrix
+        return feature_matrix_data
 
     # Function to create model-ready tensors
     def createModelTensors (self, set, window_size, horizon):
@@ -223,11 +235,11 @@ class DataPreparation:
         # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
         adj_matrix_norm_train = self.createAdjacencyMatrix(dataInDataFrameFormat=train_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (TRAIN SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_train.shape)
+        print("DATA PREPARATION - INFO (TRAIN SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_train["matrix"].shape, "- steps without padding: ", adj_matrix_norm_train["size"])
         adj_matrix_norm_test = self.createAdjacencyMatrix(dataInDataFrameFormat=test_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (TEST SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_test.shape)
+        print("DATA PREPARATION - INFO (TEST SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_test["matrix"].shape, "- steps without padding: ", adj_matrix_norm_test["size"])
         adj_matrix_norm_validation = self.createAdjacencyMatrix(dataInDataFrameFormat=validation_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation.shape)
+        print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation["matrix"].shape, "- steps without padding: ", adj_matrix_norm_validation["size"])
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
@@ -241,14 +253,14 @@ class DataPreparation:
                                                               padding_target=paddingTargetNodes)
 
         # 4. Create model-ready tensors
-        sample_train, target_train = self.createModelTensors(set=feature_matrix_train, window_size=window_size, horizon=horizon)
-        print("DATA PREPARATION - INFO (TRAIN SET): Shape of Sample Matrix: ", sample_train.shape)
+        sample_train, target_train = self.createModelTensors(set=feature_matrix_train["matrix"], window_size=window_size, horizon=horizon)
+        print("DATA PREPARATION - INFO (TRAIN SET): Shape of Sample Matrix: ", sample_train.shape, "- steps without padding: ", feature_matrix_train["size"])
         print("DATA PREPARATION - INFO (TRAIN SET): Shape of Target Matrix: ", target_train.shape)
-        sample_test, target_test = self.createModelTensors(set=feature_matrix_test, window_size=window_size, horizon=horizon)
-        print("DATA PREPARATION - INFO (TEST SET): Shape of Sample Matrix: ", sample_test.shape)
+        sample_test, target_test = self.createModelTensors(set=feature_matrix_test["matrix"], window_size=window_size, horizon=horizon)
+        print("DATA PREPARATION - INFO (TEST SET): Shape of Sample Matrix: ", sample_test.shape, "- steps without padding: ", feature_matrix_test["size"])
         print("DATA PREPARATION - INFO (TEST SET): Shape of Target Matrix: ", target_test.shape)
-        sample_validation, target_validation = self.createModelTensors(set=feature_matrix_validation, window_size=window_size, horizon=horizon)
-        print("DATA PREPARATION - INFO (VALIDATION SET): Shape of Sample Matrix: ", sample_validation.shape)
+        sample_validation, target_validation = self.createModelTensors(set=feature_matrix_validation["matrix"], window_size=window_size, horizon=horizon)
+        print("DATA PREPARATION - INFO (VALIDATION SET): Shape of Sample Matrix: ", sample_validation.shape, "- steps without padding: ", feature_matrix_validation["size"])
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of Target Matrix: ", target_validation.shape)
 
         return adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation
