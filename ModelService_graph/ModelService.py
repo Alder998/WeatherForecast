@@ -157,7 +157,7 @@ class ModelService:
             n_blocks=3, dilations=(1, 2, 4), kernel_size=2
         )
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
-        node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train.shape[0])
+        node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
         model.compile(optimizer=optimizer,
                       loss=self.masked_mse(node_mask_train),
                       metrics=[tf.keras.metrics.MAE])
@@ -173,7 +173,7 @@ class ModelService:
 
         # Evaluation on the test set + recompilation to use the custom loss to cope with different dimensions in padding
         print("MODEL EVALUATION - Re-Compiling the Model on test set for evaluation...")
-        node_mask_test = self.create_node_mask(num_nodes_valid=adj_matrix_test["size"], num_nodes_target=adj_matrix_test.shape[0])
+        node_mask_test = self.create_node_mask(num_nodes_valid=adj_matrix_test["size"], num_nodes_target=adj_matrix_test["matrix"].shape[0])
         model.compile(optimizer=optimizer, loss=self.masked_mse(node_mask_test))
         test_metrics = model.evaluate(self.test_set, self.test_labels, batch_size=4, verbose=1)
 
