@@ -46,16 +46,11 @@ class ModelService:
         return X_scaled
 
     # Utils-like function to create a custom loss that would ignore padding during training phase
-    def masked_mse(self, mask):
-        mask = tf.reshape(mask, (1, -1, 1, 1))
-        epsilon = 1e-6
-        def loss_fn(y_true, y_pred):
-            diff = (y_true - y_pred) * mask
-            squared_error = tf.square(diff)
-            num = tf.reduce_sum(squared_error)
-            denom = tf.reduce_sum(mask) * tf.cast(tf.shape(y_true)[-1], tf.float32)
-            return num / (denom + epsilon)
-        return loss_fn
+    def masked_mse(self, y_true, y_pred, mask):
+        mask = tf.reshape(mask, (1, -1, 1, 1))  # (1,716,1,1)
+        diff = (y_true - y_pred) * mask
+        mse = tf.reduce_sum(tf.square(diff)) / (tf.reduce_sum(mask) + 1e-8)  # evita div/0
+        return mse
 
     # Utils-like function to create node mask to ignore padding during training phase
     def create_node_mask(self, num_nodes_valid, num_nodes_target):
@@ -159,7 +154,7 @@ class ModelService:
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
         node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
         model.compile(optimizer=optimizer,
-                      loss=self.masked_mse(node_mask_train),
+                      loss=lambda y_true, y_pred: self.masked_mse(y_true, y_pred, node_mask_train),
                       metrics=[tf.keras.metrics.MAE])
 
         # Training: A_train is "frozen" implicitly inside the training algorithm
@@ -173,11 +168,12 @@ class ModelService:
 
         # Evaluation on the test set + recompilation to use the custom loss to cope with different dimensions in padding
         print("MODEL EVALUATION - Re-Compiling the Model on test set for evaluation...")
-        node_mask_test = self.create_node_mask(num_nodes_valid=adj_matrix_test["size"], num_nodes_target=adj_matrix_test["matrix"].shape[0])
-        model.compile(optimizer=optimizer, loss=self.masked_mse(node_mask_test))
-        test_metrics = model.evaluate(self.test_set, self.test_labels, batch_size=4, verbose=1)
+        y_pred_test = model.predict(self.test_set, batch_size=4)
+        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"], num_nodes_target=adj_matrix_test["matrix"].shape[0]), dtype=tf.float32)
+        loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
+        print("Test MSE:", loss_test)
 
-        return test_metrics
+        return loss_test
 
 
 
