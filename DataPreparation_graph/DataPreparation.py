@@ -223,7 +223,7 @@ class DataPreparation:
 
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
-        dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date)
+        dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
         # 0.1. Extract the total number of coordinates to use it during padding
         paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
