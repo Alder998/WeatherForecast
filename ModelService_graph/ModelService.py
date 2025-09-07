@@ -47,10 +47,11 @@ class ModelService:
 
     # Utils-like function to create a custom loss that would ignore padding during training phase
     def masked_mse(self, y_true, y_pred, mask):
-        mask = tf.reshape(mask, (1, -1, 1, 1))  # (1,716,1,1)
+        mask = tf.reshape(mask, (1, -1, 1, 1))
         diff = (y_true - y_pred) * mask
-        mse = tf.reduce_sum(tf.square(diff)) / (tf.reduce_sum(mask) + 1e-8)  # evita div/0
-        return mse
+        numerator = tf.reduce_sum(tf.square(diff))
+        denominator = tf.reduce_sum(mask) * tf.cast(tf.shape(y_true)[0], tf.float32) * tf.cast(tf.shape(y_true)[-1],tf.float32)
+        return numerator / (denominator + 1e-8)
 
     # Utils-like function to create node mask to ignore padding during training phase
     def create_node_mask(self, num_nodes_valid, num_nodes_target):
@@ -169,7 +170,9 @@ class ModelService:
         # Evaluation on the test set + recompilation to use the custom loss to cope with different dimensions in padding
         print("MODEL EVALUATION - Re-Compiling the Model on test set for evaluation...")
         y_pred_test = model.predict(self.test_set, batch_size=4)
-        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"], num_nodes_target=adj_matrix_test["matrix"].shape[0]), dtype=tf.float32)
+        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"],
+                                                      num_nodes_target=adj_matrix_test["matrix"].shape[0]),
+                                dtype=tf.float32)
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
         print("Test MSE:", loss_test)
 
