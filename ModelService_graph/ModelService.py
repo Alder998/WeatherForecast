@@ -25,7 +25,7 @@ class ModelService:
         pass
 
     # Utils-like function to standardize the sets according to a given dimensions
-    def standardizeSet (self, set, axis=3):
+    def standardizeSet (self, set, axis=3, save_name="scaler"):
 
         # Get the dimension you want to standardize for directly from the array
         matrixDimension = set.shape[axis]
@@ -41,7 +41,7 @@ class ModelService:
         X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[2], set.shape[3]).transpose(0, 1, 2, 3)
 
         # Save the scaler + return the scaled numpy object
-        joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\scaler.pkl")
+        joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
 
         return X_scaled
 
@@ -130,7 +130,11 @@ class ModelService:
 
         return model
 
-    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, training_epochs):
+    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, training_epochs, save_name="model"):
+
+        # First, create model directory, if it does not exist
+        if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
+            os.mkdir("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name)
 
         # Extract Dimensions from input set
         N_train = self.train_set.shape[1]
@@ -140,12 +144,12 @@ class ModelService:
 
         # Standardize each one of the sets
         print("MODEL PREPARATION - Standardizing the sets...")
-        self.train_set = self.standardizeSet(self.train_set, axis = 3)
-        self.train_labels = self.standardizeSet(self.train_labels, axis = 3)
-        self.test_set = self.standardizeSet(self.test_set, axis = 3)
-        self.test_labels = self.standardizeSet(self.test_labels, axis = 3)
-        self.validation_set = self.standardizeSet(self.validation_set, axis = 3)
-        self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3)
+        self.train_set = self.standardizeSet(self.train_set, axis = 3, save_name=save_name)
+        self.train_labels = self.standardizeSet(self.train_labels, axis = 3, save_name=save_name)
+        self.test_set = self.standardizeSet(self.test_set, axis = 3, save_name=save_name)
+        self.test_labels = self.standardizeSet(self.test_labels, axis = 3, save_name=save_name)
+        self.validation_set = self.standardizeSet(self.validation_set, axis = 3, save_name=save_name)
+        self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3, save_name=save_name)
 
         model = self.build_graph_wavenet(
             N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
@@ -174,7 +178,12 @@ class ModelService:
                                                       num_nodes_target=adj_matrix_test["matrix"].shape[0]),
                                 dtype=tf.float32)
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
-        print("Test MSE:", loss_test)
+        print("MODEL EVALUATION - MSE on test set: ", loss_test)
+
+        # Save model into .h5 format (more flexible for special functions like tf.Lambda)
+        print("MODEL TRAINING - Saving model...")
+        model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + ".h5")
+        print("MODEL TRAINING - Model Saved correctly!")
 
         return loss_test
 
