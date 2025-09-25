@@ -3,14 +3,17 @@
 from DataPreparation_graph import DataPreparation as dt
 import ModelService as model
 
+# Set the model name
+model_name="graph-3mo-1v"
+
 # Instantiate the class
 classModule = dt.DataPreparation(grid_step=0.22)
 
 # Train-test split
 adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
-                                                                       start_date = "2025-03-01",
+                                                                       start_date = "2025-05-01",
                                                                        end_date = "2025-08-15",
-                                                                       variableToPredict=["temperature", "precipitation"],
+                                                                       variableToPredict=["temperature"],
                                                                        test_size=0.30,
                                                                        validation_size=0.15,
                                                                        window_size=24,
@@ -24,5 +27,6 @@ model.ModelService(train_set=sample_train,
                    validation_set=sample_validation,
                    validation_labels=target_validation).WaveNetTimeSpaceModel(adj_matrix_train=adj_matrix_norm_train,
                                                                               adj_matrix_test=adj_matrix_norm_test,
-                                                                              training_epochs=2)
+                                                                              training_epochs=2,
+                                                                              save_name=model_name)
 

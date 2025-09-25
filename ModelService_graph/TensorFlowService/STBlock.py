@@ -20,3 +20,18 @@ class STBlock(layers.Layer):
         h = self.bn(h)
         skip = skip1 + skip2
         return h, skip
+
+    # get_config to save layer within the model
+    # channels_t, channels_s, supports, kernel_size=2, dilation=1
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "channels_t": self.temp1,
+            "channels_s": self.gconv,
+            "supports" : self.supports,
+            "kernel_size" : self.kernel_size,
+            "dilation" : self.dilation
+        })
+        return config
+
+
