@@ -57,3 +57,13 @@ class DiffusionGraphConv(layers.Layer):
         # back to (B, W, N, C_out)
         h = tf.reshape(h, (B, W, N, self.channels_out))
         return h
+
+    # get_config to save layer within the model
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "supports": self.supports,
+            "channels_out": self.channels_out,
+            "use_bias" : self.use_bias
+        })
+        return config

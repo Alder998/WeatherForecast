@@ -44,3 +44,13 @@ class TemporalGatedBlock(layers.Layer):
         out = tf.reshape(out, (B, W, N, C))
         skip = tf.reshape(skip, (B, W, N, C))
         return out, skip
+
+    # get_config to save layer within the model
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "channels": self.channels,
+            "kernel_size": self.kernel_size,
+            "dilation_rate" : self.dilation_rate
+        })
+        return config

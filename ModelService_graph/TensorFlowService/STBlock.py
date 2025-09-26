@@ -22,7 +22,6 @@ class STBlock(layers.Layer):
         return h, skip
 
     # get_config to save layer within the model
-    # channels_t, channels_s, supports, kernel_size=2, dilation=1
     def get_config(self):
         config = super().get_config()
         config.update({
