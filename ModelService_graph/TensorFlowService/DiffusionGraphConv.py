@@ -18,6 +18,7 @@ class DiffusionGraphConv(layers.Layer):
         self.supports = [tf.constant(S.astype(np.float32)) for S in supports]
 
     def build(self, input_shape):
+        # Build supports
         C_in = int(input_shape[-1])
         S = len(self.supports)
         # Create one param for each one of the supports
@@ -62,7 +63,7 @@ class DiffusionGraphConv(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
-            "supports": self.supports,
+            "supports": [support.numpy().tolist() for support in self.supports],
             "channels_out": self.channels_out,
             "use_bias" : self.use_bias
         })

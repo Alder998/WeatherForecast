@@ -25,11 +25,10 @@ class STBlock(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
-            "channels_t": self.temp1,
-            "channels_s": self.gconv,
-            "supports" : self.supports,
-            "kernel_size" : self.kernel_size,
-            "dilation" : self.dilation
+            "temp1": self.temp1,
+            "gconv": self.gconv,
+            "temp2" : self.temp2,
+            "bn": self.bn
         })
         return config
 

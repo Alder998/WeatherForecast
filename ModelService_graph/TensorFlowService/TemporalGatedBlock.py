@@ -51,6 +51,10 @@ class TemporalGatedBlock(layers.Layer):
         config.update({
             "channels": self.channels,
             "kernel_size": self.kernel_size,
-            "dilation_rate" : self.dilation_rate
+            "dilation_rate" : self.dilation_rate,
+            "conv_f": self.conv_f,
+            "conv_g": self.conv_g,
+            "res_proj": self.res_proj,
+            "skip_proj": self.skip_proj
         })
         return config
