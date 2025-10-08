@@ -10,7 +10,7 @@ from datetime import datetime
 from DataPreparation import DataPreparation as dt
 import ModelService as model
 
-modelName = 'small-bidirectional-LSMT-uniform_time'
+modelName = '1y-as-is'
 
 # Variables to fill the model and the model name
 variableToPredict = 'temperature_residual'
@@ -38,7 +38,7 @@ train_set, test_set, train_labels, test_labels = dt.DataPreparation(grid_step=0.
                                                    end_date=end_date,
                                                    test_size=test_size,
                                                    predictiveVariables=["year", "month", "day", "hour", "latitude",
-                                                                        "longitude", "seasonal", "trend"],
+                                                                        "longitude", "seasonal"],
                                                    timeVariables=["year", "month", "day", "hour"],
                                                    variableToPredict=variableToPredict,
                                                    time_split=timeSplit,

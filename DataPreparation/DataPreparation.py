@@ -474,9 +474,8 @@ class DataPreparation:
             residual = res.resid
 
             # Concatenate the seasonality component to the actual database
-            dataset_time["trend"] = pd.DataFrame(trend)
             dataset_time["residual"] = pd.DataFrame(residual)
-            dataset_time["seasonal"] = pd.DataFrame(seasonal)
+            dataset_time["seasonal"] = pd.Series(seasonal) + pd.Series(trend)
             ts_decomposed_db.append(dataset_time)
 
         ts_decomposed_db = pd.concat([df for df in ts_decomposed_db], axis = 0).reset_index(drop=True)

@@ -6,7 +6,7 @@ import PredictionService as p
 # Add all folders for batch execution
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-model_name = 'small-bidirectional-LSMT-uniform_time'
+model_name = '1y-as-is'
 
 # Read the modelInfo
 with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:

@@ -137,7 +137,7 @@ class PredictionService:
             print('computing month cos...')
             rawPredictionSet = rawPredictionSet.copy()
             rawPredictionSet['month_cos'] = np.cos(2 * np.pi * rawPredictionSet['month'] / 24)
-        if ('seasonal' in self.predictiveVariables) | ('trend' in self.predictiveVariables):
+        if 'seasonal' in self.predictiveVariables:
             # Create a Prophet prediction for each grid point
             prophetData = self.manageProphetPredictionForSeasonality(grid_points=len(gridPointData[gridPointData.columns[0]]))
             rawPredictionSet = pd.concat([rawPredictionSet, prophetData["prophet_pred"]], axis = 1)
