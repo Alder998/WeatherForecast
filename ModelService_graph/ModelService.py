@@ -130,7 +130,7 @@ class ModelService:
 
         return model
 
-    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, training_epochs, save_name="model"):
+    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, model_params, training_epochs, save_name="model"):
 
         # First, create model directory, if it does not exist
         if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
@@ -153,8 +153,9 @@ class ModelService:
 
         model = self.build_graph_wavenet(
             N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
-            channels_t=32, channels_s=32,
-            n_blocks=3, dilations=(1, 2, 4), kernel_size=2
+            channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
+            n_blocks=model_params["n_blocks"], dilations=model_params["dilations"],
+            kernel_size=model_params["kernel_size"]
         )
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
         node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
