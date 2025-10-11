@@ -125,7 +125,6 @@ class ModelService:
             return tf.reshape(last, (-1, N, F_in, H))  # (B, N, F, H)
 
         Y_out = layers.Lambda(take_last_timestep, name="forecast")(out)
-
         model = models.Model(inputs=X_in, outputs=Y_out, name="GraphWaveNet_Minimal")
 
         return model
@@ -151,10 +150,12 @@ class ModelService:
         self.validation_set = self.standardizeSet(self.validation_set, axis = 3, save_name=save_name)
         self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3, save_name=save_name)
 
+        # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
+        n_blocks = len(model_params["dilations"])
         model = self.build_graph_wavenet(
             N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
             channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
-            n_blocks=model_params["n_blocks"], dilations=model_params["dilations"],
+            n_blocks=n_blocks, dilations=model_params["dilations"],
             kernel_size=model_params["kernel_size"]
         )
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
@@ -178,6 +179,8 @@ class ModelService:
         mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"],
                                                       num_nodes_target=adj_matrix_test["matrix"].shape[0]),
                                 dtype=tf.float32)
+        # Print prediction size to be able to build the prediction framework faster
+        print("MODEL EVALUATION - INFO: prediction size on test set: ", y_pred_test.shape)
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
         print("MODEL EVALUATION - MSE on test set: ", loss_test)
 
