@@ -7,39 +7,28 @@ from ReportingLibrary import LocalizedWeather as locl
 model_name = 'small-bidirectional-LSMT-uniform_time'
 
 # Read the modelInfo
-with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:
-    model_info = json.load(f)
+#with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:
+#    model_info = json.load(f)
 
 # Instantiate the class
-classModule = p.PredictionService(model="D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\" + model_name + ".h5",
-                                  grid_step=model_info["grid_step"],
-                                  start_date="2025-08-14", # Must be ALWAYS the day before the latest observation
-                                  prediction_steps=96,
-                                  predictiveVariables=model_info["predictive_variables"],
-                                  variableToPredict=model_info["target_variable"],
-                                  timeVariables=model_info["time_variables"],
-                                  prophet_params = {
-                                      "re-train": False,
-                                      "dataset_depth": 365,
-                                      "prediction_steps": 365,
-                                      "rolling_window_trend": 300,
-                                  })
+classModule = p.PredictionService(model="graph-3mo-1v-96h").prepareDataForModel()
+
 # Execute the prediction
-predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
+#predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
 # Report Part
-try:
-    animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dataFrame=predictions,
-                                                                    weatherVariable=model_info["target_variable"].replace("_residual", ""),
-                                                                    start_date=None,
-                                                                    end_date=None,
-                                                                    colorScale="rainbow",
-                                                                    save=False,
-                                                                    show=True)
-except:
-    print("No Connection for the map report! Passing to the following Report...")
-
-timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
-                                                                                     city = 'Milano',
-                                                                                     predictedVariable=model_info["target_variable"].replace("_residual", ""),
-                                                                                     confidence_levels=False)
+#try:
+#    animation = ani.Animations().generateAnimationOnWeatherVariableFromDataFrame(dataFrame=predictions,
+#                                                                    weatherVariable=model_info["target_variable"].replace("_residual", ""),
+#                                                                    start_date=None,
+#                                                                    end_date=None,
+#                                                                    colorScale="rainbow",
+#                                                                    save=False,
+#                                                                    show=True)
+#except:
+#    print("No Connection for the map report! Passing to the following Report...")
+#
+#timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf = predictions,
+#                                                                                     city = 'Milano',
+#                                                                                     predictedVariable=model_info["target_variable"].replace("_residual", ""),
+#                                                                                     confidence_levels=False)

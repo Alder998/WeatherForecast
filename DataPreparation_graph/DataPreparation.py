@@ -242,7 +242,7 @@ class DataPreparation:
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation["matrix"].shape, "- steps without padding: ", adj_matrix_norm_validation["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix_train.pkl", adj_matrix_norm_train["matrix"])
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix_train.npy", adj_matrix_norm_train["matrix"])
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,

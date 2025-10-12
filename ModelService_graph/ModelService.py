@@ -161,7 +161,7 @@ class ModelService:
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
         node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
         model.compile(optimizer=optimizer,
-                      loss=lambda y_true, y_pred: self.masked_mse(y_true, y_pred, node_mask_train),
+                      loss=tf.keras.metrics.MSE,
                       metrics=[tf.keras.metrics.MAE])
 
         # Training: A_train is "frozen" implicitly inside the training algorithm
@@ -179,6 +179,12 @@ class ModelService:
         mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"],
                                                       num_nodes_target=adj_matrix_test["matrix"].shape[0]),
                                 dtype=tf.float32)
+        # Prediction to take the last step
+        # Save the last observation Layer in .npy to have it for prediction
+        Y_last_obs = model.predict(self.train_set[-1:])
+        print("MODEL TRAINING: Last Observation shape:", Y_last_obs.shape)
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
+
         # Print prediction size to be able to build the prediction framework faster
         print("MODEL EVALUATION - INFO: prediction size on test set: ", y_pred_test.shape)
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
@@ -186,7 +192,8 @@ class ModelService:
 
         # Save model into .h5 format (more flexible for special functions like tf.Lambda)
         print("MODEL TRAINING - Saving model...")
-        model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + ".h5")
+        # .export for .SaveModel, .save for .keras or .h5 (according the extension by the user)
+        model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + ".keras")
         print("MODEL TRAINING - Model Saved correctly!")
 
         return loss_test
