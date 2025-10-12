@@ -219,7 +219,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, distance_threshold):
+                                  window_size, horizon, distance_threshold, save_name):
 
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
@@ -240,6 +240,9 @@ class DataPreparation:
         print("DATA PREPARATION - INFO (TEST SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_test["matrix"].shape, "- steps without padding: ", adj_matrix_norm_test["size"])
         adj_matrix_norm_validation = self.createAdjacencyMatrix(dataInDataFrameFormat=validation_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation["matrix"].shape, "- steps without padding: ", adj_matrix_norm_validation["size"])
+
+        # 2.1. Save the adjacency matrix used for training in .npy format
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix_train.pkl", adj_matrix_norm_train["matrix"])
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
