@@ -7,6 +7,14 @@ from .TemporalGatedBlock import TemporalGatedBlock
 class STBlock(layers.Layer):
     def __init__(self, channels_t, channels_s, supports, kernel_size=2, dilation=1, **kwargs):
         super().__init__(**kwargs)
+
+        # define primary params first
+        self.channels_t = channels_t
+        self.channels_s = channels_s
+        self.supports = supports
+        self.kernel_size = kernel_size
+        self.dilation = dilation
+
         self.temp1 = TemporalGatedBlock(channels=channels_t, kernel_size=kernel_size, dilation_rate=dilation)
         self.gconv = DiffusionGraphConv(supports=supports, channels_out=channels_s)
         self.temp2 = TemporalGatedBlock(channels=channels_t, kernel_size=kernel_size, dilation_rate=1)
@@ -25,10 +33,11 @@ class STBlock(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
-            "temp1": self.temp1,
-            "gconv": self.gconv,
-            "temp2" : self.temp2,
-            "bn": self.bn
+            "channels_t": self.channels_t,
+            "channels_s": self.channels_s,
+            "kernel_size": self.kernel_size,
+            "dilation": self.dilation,
+            "supports": self.supports,
         })
         return config
 
