@@ -34,10 +34,10 @@ class PredictionService:
         # 1. Load the necessary Inputs
         # 1.1. Load the Model
         print("DATA PREPARATION FOR PREDICTION - Loading Model...")
-        loaded_model = tf.keras.models.load_model("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\" + self.model,
+        loaded_model = tf.keras.models.load_model("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\" + self.model + ".keras",
                                                   custom_objects={"STBlock": STBlock.STBlock,
                                                                   "DiffusionGraphConv": DiffusionGraphConv.DiffusionGraphConv,
-                                                                  "TemporalGatedBlock": TemporalGatedBlock.TemporalGatedBlock})
+                                                                  "TemporalGatedBlock": TemporalGatedBlock.TemporalGatedBlock}, safe_mode=False)
 
         # 1.2. Load the scaler
         loaded_scaler = joblib.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\scaler.pkl")
