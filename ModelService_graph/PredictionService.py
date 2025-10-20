@@ -32,19 +32,24 @@ class PredictionService:
     def prepareDataForModel (self):
 
         # 1. Load the necessary Inputs
-        # 1.1. Load the Model
+
+        # 1.1. Load the Adjacency Matrix
+        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\AdjacencyMatrix_train.npy")
+        print("DATA PREPARATION FOR PREDICTION - Shape of loaded Adjacency Matrix: ", loaded_adjMatrix.shape)
+
+        # 1.2. Load the Model
         print("DATA PREPARATION FOR PREDICTION - Loading Model...")
         loaded_model = tf.keras.models.load_model("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\" + self.model + ".keras",
                                                   custom_objects={"STBlock": STBlock.STBlock,
                                                                   "DiffusionGraphConv": DiffusionGraphConv.DiffusionGraphConv,
                                                                   "TemporalGatedBlock": TemporalGatedBlock.TemporalGatedBlock}, safe_mode=False)
+        # 1.2.1. re-initialize and set the supports
+        for layer in loaded_model.layers:
+            if isinstance(layer, STBlock.STBlock):
+                layer.set_supports(loaded_adjMatrix)
 
         # 1.2. Load the scaler
         loaded_scaler = joblib.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\scaler.pkl")
-
-        # 1.3. Load the Adjacency Matrix
-        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\AdjacencyMatrix_train.npy")
-        print("DATA PREPARATION FOR PREDICTION - Shape of loaded Adjacency Matrix: ", loaded_adjMatrix.shape)
 
         # 1.4. Load the last Layer
         loaded_last_layer = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\last_obs_layer.npy")
