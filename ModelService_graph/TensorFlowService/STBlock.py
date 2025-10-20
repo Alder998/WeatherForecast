@@ -37,7 +37,7 @@ class STBlock(layers.Layer):
             "channels_s": self.channels_s,
             "kernel_size": self.kernel_size,
             "dilation": self.dilation,
-            "supports": self.supports,
+            "supports": "placeholder_supports",
         })
         return config
 

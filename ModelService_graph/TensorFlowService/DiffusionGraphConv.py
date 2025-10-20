@@ -63,7 +63,7 @@ class DiffusionGraphConv(layers.Layer):
     def get_config(self):
         config = super().get_config()
         config.update({
-            "supports": [support.numpy().tolist() for support in self.supports],
+            "supports": "placeholder_supports",
             "channels_out": self.channels_out,
             "use_bias" : self.use_bias
         })

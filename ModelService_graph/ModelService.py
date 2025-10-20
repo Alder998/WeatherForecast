@@ -197,9 +197,3 @@ class ModelService:
         print("MODEL TRAINING - Model Saved correctly!")
 
         return loss_test
-
-
-
-
-
-
