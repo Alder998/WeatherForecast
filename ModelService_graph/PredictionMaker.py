@@ -4,17 +4,11 @@ import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-model_name = 'small-bidirectional-LSMT-uniform_time'
-
-# Read the modelInfo
-#with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + '\\modelInfo.json', "r") as f:
-#    model_info = json.load(f)
+model_name = "graph-3mo-1v-96h"
 
 # Instantiate the class
-classModule = p.PredictionService(model="graph-3mo-1v-96h").prepareDataForModel()
+classModule = p.PredictionService(model=model_name).prepareDataForModel()
 
-# Execute the prediction
-#predictions = classModule.NNPredict(confidence_levels=False, n_iter=None, loaded_scaler=None)
 
 # Report Part
 #try:
