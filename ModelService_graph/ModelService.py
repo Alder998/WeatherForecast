@@ -5,6 +5,7 @@ from keras.src.layers import Input
 from tensorflow.keras import layers, models
 import tensorflow as tf
 from TensorFlowService import STBlock as stb
+from TensorFlowService import GraphWaveNet as gwn
 from ModelStorageService import ModelStorageService as st
 import json
 import os
@@ -59,76 +60,6 @@ class ModelService:
         mask[:num_nodes_valid] = 1.0
         return mask
 
-    # Utils-like function to normalize the Adjacency Matrix
-    def normalize_adj_random_walk(self, A):
-        A_hat = A + np.eye(A.shape[0], dtype=A.dtype)
-        d = A_hat.sum(axis=1)
-        D_inv = np.diag(1.0 / np.maximum(d, 1e-8))
-        return D_inv @ A_hat
-
-    # Utils-like function to compute Model Supports
-    def compute_supports(self, A_norm, max_power=2):
-        supports = [A_norm]
-        Xp = A_norm.copy()
-        for _ in range(2, max_power):
-            Xp = Xp @ A_norm
-            supports.append(Xp)
-        return supports
-
-    def build_graph_wavenet(self, N, F_in, W, H, A,
-                            channels_t=32, channels_s=32,
-                            n_blocks=3, dilations=(1, 2, 4),
-                            kernel_size=2):
-        """
-        N: number of nodes
-        F_in: feature per node
-        W: window_size (input)
-        H: horizon (output)
-        A: adjacency (numpy matrix 2x2) according to the split passed to the model
-        """
-        # Normalize + create supports
-        A_norm = self.normalize_adj_random_walk(A)
-        supports = self.compute_supports(A_norm, max_power=2)  # [A, A^2]
-
-        # Input: (B, N, F, W) -> Change to a (B, W, N, C)
-        X_in = Input(shape=(N, F_in, W), name="X")
-        x = layers.Lambda(lambda t: tf.transpose(t, perm=[0, 3, 1, 2]))(X_in)  # (B, W, N, F)
-
-        # Initial Channels Projection
-        x = layers.Conv2D(filters=channels_t, kernel_size=(1, 1), padding="same")(x)  # (B, W, N, C)
-
-        # Pile the ST Blocks
-        skips = []
-        for b, d in enumerate(dilations[:n_blocks]):
-            st = stb.STBlock(channels_t=channels_t, channels_s=channels_s, supports=supports,
-                         kernel_size=kernel_size, dilation=d, name=f"stblock_{b}")
-            x, skip = st(x)
-            skips.append(skip)
-
-        # Skip connection aggregation
-        s = layers.Add()(skips)
-        s = layers.Activation('relu')(s)
-        s = layers.Conv2D(filters=channels_t, kernel_size=(1, 1), activation='relu', padding="same")(s)
-
-        # temporal head to create H steps
-        # (B, W, N, C) -> time-Conv1D inside a Conv2D with kernel (k,1)
-        # We use here a 1x1 to directly map the channels F_in*H on time dimensions
-        # Compress on time and then expand at H
-        s = layers.Conv2D(filters=channels_t, kernel_size=(1, 1), activation='relu', padding="same")(s)
-        # Map directly an F_in * H on time dimension with a 1x1+reshape
-        out = layers.Conv2D(filters=F_in * H, kernel_size=(1, 1), padding="same")(s)  # (B, W, N, F*H)
-
-        # Take the last row as causal "decision" + remodel it at (B, N, F, H)
-        def take_last_timestep(t):
-            # t: (B, W, N, F*H)
-            last = t[:, -1, :, :]  # (B, N, F*H)
-            return tf.reshape(last, (-1, N, F_in, H))  # (B, N, F, H)
-
-        Y_out = layers.Lambda(take_last_timestep, name="forecast")(out)
-        model = models.Model(inputs=X_in, outputs=Y_out, name="GraphWaveNet_Minimal")
-
-        return model
-
     def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, model_params, training_epochs, save_name="model"):
 
         # First, create model directory, if it does not exist
@@ -152,12 +83,12 @@ class ModelService:
 
         # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
         n_blocks = len(model_params["dilations"])
-        model = self.build_graph_wavenet(
-            N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
-            channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
-            n_blocks=n_blocks, dilations=model_params["dilations"],
-            kernel_size=model_params["kernel_size"]
-        )
+
+        model = gwn.GraphWaveNet(N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
+                        channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
+                        n_blocks=n_blocks, dilations=model_params["dilations"],
+                        kernel_size=model_params["kernel_size"]).build_graph_wavenet()
+
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
         node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
         model.compile(optimizer=optimizer,
@@ -190,10 +121,18 @@ class ModelService:
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
         print("MODEL EVALUATION - MSE on test set: ", loss_test)
 
-        # Save model into .h5 format (more flexible for special functions like tf.Lambda)
+        # Save weights and configs into the save directory
         print("MODEL TRAINING - Saving model...")
-        # .export for .SaveModel, .save for .keras or .h5 (according the extension by the user)
-        model.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\" + save_name + ".keras")
-        print("MODEL TRAINING - Model Saved correctly!")
+        model.save_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_weights.weights.h5")
+        print("MODEL TRAINING - Model Weights correctly.")
+        config = {
+            "model_class": "GraphWaveNet",
+            "model_user_params": model_params,  # Model params set by the user
+            "model_params": {"N": N_train, "F_in": F_in, "W": W, "H": H, "n_blocks": n_blocks}
+        }
+        # Save config
+        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_config.h5", "w") as f:
+            json.dump(config, f, indent=4)
+        print("MODEL TRAINING - Model config saved correctly.")
 
         return loss_test
