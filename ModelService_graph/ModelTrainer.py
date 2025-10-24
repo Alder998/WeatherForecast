@@ -30,8 +30,8 @@ model.ModelService(train_set=sample_train,
                                                                               adj_matrix_test=adj_matrix_norm_test,
                                                                               model_params={"channels_t": 32,
                                                                                             "channels_s": 32,
-                                                                                            "dilations": (1, 2),
+                                                                                            "dilations": (12, 24),
                                                                                             "kernel_size": 2},
-                                                                              training_epochs=2,
+                                                                              training_epochs=10,
                                                                               save_name=model_name)
 

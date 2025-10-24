@@ -105,16 +105,27 @@ class PredictionService:
         uniqueCoords = allCoords.drop_duplicates()
         # 3.2. create a series of dates to start the prediction from
         dates = pd.date_range(start = datetime.strptime(start_date, "%Y-%m-%d"), periods=modelPrediction.shape[3], freq="h")
-        for point_step in range(modelPrediction.shape[1]):
-            prediction_for_point = modelPrediction[:, :, point_step, :]
-            for column in range(prediction_for_point.shape[0]):
-                prediction_df_format = pd.DataFrame(prediction_for_point[column, :, :])
-                # Set index and columns appropriately: index must refer to the coordinates, so take them from database
-                prediction_df_format = pd.concat([uniqueCoords, prediction_df_format.set_axis(dates, axis=1)], axis=1)
-                dataset_for_representation = []
-                for d in dates:
-                    dataset_for_representation.append(prediction_df_format[["lat", "lng", d]].set_axis(["latitude", "longitude", d], axis=1))
-                dataset_for_representation = pd.concat([df for df in dataset_for_representation], axis = 0).reset_index(drop=True)
 
-        return 0
+        prediction_dataset = []
+        for point_step in range(modelPrediction.shape[2]):
+            prediction_for_point = pd.DataFrame(np.squeeze(modelPrediction[:, :, point_step, :], axis=0))
+            # Set index and columns appropriately: index must refer to the coordinates, so take them from database
+            prediction_df_format = pd.concat([uniqueCoords, prediction_for_point.set_axis(dates, axis=1)], axis=1)
+            dataset_for_representation = []
+            for d in dates:
+                data_sql_format = pd.concat([pd.DataFrame(np.full(len(prediction_df_format[prediction_df_format.columns[0]]), d)),
+                                             prediction_df_format[["lat", "lng"]],
+                                             prediction_df_format[d]], axis=1).set_axis(["date", "latitude",
+                                                                                           "longitude", "temperature"], axis=1)
+                dataset_for_representation.append(data_sql_format)
+            dataset_for_representation = pd.concat([df for df in dataset_for_representation], axis = 0).reset_index(drop=True)
+            prediction_dataset.append(dataset_for_representation)
+
+        if len(prediction_dataset) == 1:
+            return prediction_dataset[0]
+        else:
+            prediction_dataset = pd.concat([df for df in prediction_dataset], axis=1)
+            # Drop duplicate columns (ideally, latitude, longitude, date) and return
+            prediction_dataset = prediction_dataset.loc[:, ~prediction_dataset.columns.duplicated()]
+            return prediction_dataset
 
