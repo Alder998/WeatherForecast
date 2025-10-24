@@ -113,6 +113,8 @@ class ModelService:
         # Prediction to take the last step
         # Save the last observation Layer in .npy to have it for prediction
         Y_last_obs = model.predict(self.train_set[-1:])
+        # take only the last window-hours, so that you can load this layer easily and use it for prediction
+        Y_last_obs = Y_last_obs[:, :, :, -W:]
         print("MODEL TRAINING: Last Observation shape:", Y_last_obs.shape)
         np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
 

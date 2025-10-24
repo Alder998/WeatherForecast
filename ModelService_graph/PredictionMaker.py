@@ -7,7 +7,7 @@ from ReportingLibrary import LocalizedWeather as locl
 model_name = "graph-3mo-1v-96h"
 
 # Instantiate the class
-classModule = p.PredictionService(model=model_name).prepareDataForModel()
+classModule = p.PredictionService(model=model_name).predictWithStoredModel(grid_step=0.22, start_date="2025-10-07")
 
 
 # Report Part

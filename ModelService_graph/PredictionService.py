@@ -28,8 +28,41 @@ class PredictionService:
         self.model = model
         pass
 
+    # function to de-standardize the data with loaded scaler
+    def deStandardizeData (self, data, loaded_scaler):
+
+        # 2. Reshape
+        B, N, F, T = data.shape
+        data_reshaped = data.reshape(-1, F * T)
+
+        # 3. De-scale the data
+        data_descaled = loaded_scaler.transform(data_reshaped)
+
+        # 4. Put the data into the original shape
+        data_descaled = data_descaled.reshape(B, N, F, T)
+
+        return data_descaled
+
+    def dataClass(self, type='db'):
+
+        env_path = r"D:\PythonProjects-Storage\WeatherForecast\App_core\app.env"
+        load_dotenv(env_path)
+        database = os.getenv("database")
+        user = os.getenv("user")
+        password = os.getenv("password")
+        host = os.getenv("host")
+        port = os.getenv("port")
+
+        # Instantiate the database Object
+        if type == 'db':
+            dataClass = db.Database(database, user, password, host, port)
+        elif type == 'dk':
+            dataClass = dk.Database_dask(database, user, password, host, port)
+
+        return dataClass
+
     # Main function to prepare data for the selected Model to be predicted
-    def prepareDataForModel (self):
+    def predictWithStoredModel(self, grid_step=0.22, start_date=""):
 
         # 1. Load the necessary Inputs
 
@@ -53,12 +86,35 @@ class PredictionService:
         # 1.2.3. Load the weights
         model.load_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\model_weights.weights.h5")
 
-        # 1.2. Load the scaler
-        loaded_scaler = joblib.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\scaler.pkl")
-
-        # 1.4. Load the last Layer
+        # 1.3. Load the last Layer
         loaded_last_layer = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\last_obs_layer.npy")
         print("DATA PREPARATION FOR PREDICTION - Shape of loaded Last Layer (for prediction shape): ", loaded_last_layer.shape)
+
+        # 2. predict based on last layer
+        modelPrediction = model.predict(loaded_last_layer)
+        print("PREDICTION: size of prediction:", modelPrediction.shape)
+        # 2.1 load the scaler
+        loaded_scaler = joblib.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\scaler.pkl")
+        # 2.2. De-scale the prediction
+        modelPrediction = self.deStandardizeData(data=modelPrediction, loaded_scaler=loaded_scaler)
+        print("PREDICTION: size of de-scaled prediction:", modelPrediction.shape)
+
+        # 3. Put the prediction into a readable output
+        # 3.1. Take all the admissible coordinates from the database
+        allCoords = self.dataClass().executeQuery('SELECT * FROM public."gridPoints_' + str(grid_step) + '"')
+        uniqueCoords = allCoords.drop_duplicates()
+        # 3.2. create a series of dates to start the prediction from
+        dates = pd.date_range(start = datetime.strptime(start_date, "%Y-%m-%d"), periods=modelPrediction.shape[3], freq="h")
+        for point_step in range(modelPrediction.shape[1]):
+            prediction_for_point = modelPrediction[:, :, point_step, :]
+            for column in range(prediction_for_point.shape[0]):
+                prediction_df_format = pd.DataFrame(prediction_for_point[column, :, :])
+                # Set index and columns appropriately: index must refer to the coordinates, so take them from database
+                prediction_df_format = pd.concat([uniqueCoords, prediction_df_format.set_axis(dates, axis=1)], axis=1)
+                dataset_for_representation = []
+                for d in dates:
+                    dataset_for_representation.append(prediction_df_format[["lat", "lng", d]].set_axis(["latitude", "longitude", d], axis=1))
+                dataset_for_representation = pd.concat([df for df in dataset_for_representation], axis = 0).reset_index(drop=True)
 
         return 0
 
