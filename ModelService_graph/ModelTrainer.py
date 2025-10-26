@@ -11,8 +11,8 @@ classModule = dt.DataPreparation(grid_step=0.22)
 
 # Train-test split
 adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
-                                                                       start_date = "2025-08-01",
-                                                                       end_date = "2025-10-07",
+                                                                       start_date="2025-08-01",
+                                                                       end_date="2025-10-07",
                                                                        variableToPredict=["temperature"],
                                                                        test_size=0.30,
                                                                        validation_size=0.15,
@@ -32,6 +32,10 @@ model.ModelService(train_set=sample_train,
                                                                                             "channels_s": 32,
                                                                                             "dilations": (12, 24),
                                                                                             "kernel_size": 2},
-                                                                              training_epochs=10,
-                                                                              save_name=model_name)
+                                                                              training_epochs=3,
+                                                                              save_name=model_name,
+                                                                              # The following are only valid for prediction's sake
+                                                                              variableToPredict=["temperature"],
+                                                                              end_date="2025-10-07"
+                                                                              )
 

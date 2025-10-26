@@ -28,18 +28,18 @@ class ModelService:
     # Utils-like function to standardize the sets according to a given dimensions
     def standardizeSet (self, set, axis=3, save_name="scaler"):
 
-        # Get the dimension you want to standardize for directly from the array
-        matrixDimension = set.shape[axis]
+        # Set the axis to standardize the features
+        matrixDimension = set.shape[axis]  # = 2
 
-        # Put the desired dimensions in the last position, and flatten all the other dimensions
+        # Put the feature at the end to be standardized
         X_reshaped = set.transpose(0, 1, 3, 2).reshape(-1, matrixDimension)
 
-        # Standardize along the given dimension
+        # Fit scaler on F
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X_reshaped)
 
-        # Put the numpy object in the starting shape
-        X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[2], set.shape[3]).transpose(0, 1, 2, 3)
+        # Put everything into the original form
+        X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[3], set.shape[2]).transpose(0, 1, 3, 2)
 
         # Save the scaler + return the scaled numpy object
         joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
@@ -60,7 +60,8 @@ class ModelService:
         mask[:num_nodes_valid] = 1.0
         return mask
 
-    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, model_params, training_epochs, save_name="model"):
+    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, model_params, training_epochs,variableToPredict,
+                               end_date, save_name="model"):
 
         # First, create model directory, if it does not exist
         if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
@@ -74,12 +75,12 @@ class ModelService:
 
         # Standardize each one of the sets
         print("MODEL PREPARATION - Standardizing the sets...")
-        self.train_set = self.standardizeSet(self.train_set, axis = 3, save_name=save_name)
-        self.train_labels = self.standardizeSet(self.train_labels, axis = 3, save_name=save_name)
-        self.test_set = self.standardizeSet(self.test_set, axis = 3, save_name=save_name)
-        self.test_labels = self.standardizeSet(self.test_labels, axis = 3, save_name=save_name)
-        self.validation_set = self.standardizeSet(self.validation_set, axis = 3, save_name=save_name)
-        self.validation_labels = self.standardizeSet(self.validation_labels, axis = 3, save_name=save_name)
+        self.train_set = self.standardizeSet(self.train_set, axis=2, save_name=save_name)
+        self.train_labels = self.standardizeSet(self.train_labels, axis=2, save_name=save_name)
+        self.test_set = self.standardizeSet(self.test_set, axis=2, save_name=save_name)
+        self.test_labels = self.standardizeSet(self.test_labels, axis=2, save_name=save_name)
+        self.validation_set = self.standardizeSet(self.validation_set, axis=2, save_name=save_name)
+        self.validation_labels = self.standardizeSet(self.validation_labels, axis=2, save_name=save_name)
 
         # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
         n_blocks = len(model_params["dilations"])
@@ -130,7 +131,9 @@ class ModelService:
         config = {
             "model_class": "GraphWaveNet",
             "model_user_params": model_params,  # Model params set by the user
-            "model_params": {"N": N_train, "F_in": F_in, "W": W, "H": H, "n_blocks": n_blocks}
+            "model_params": {"N": N_train, "F_in": F_in, "W": W, "H": H, "n_blocks": n_blocks},
+            "variableToPredict": variableToPredict,
+            "end_date": end_date
         }
         # Save config
         with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_config.h5", "w") as f:

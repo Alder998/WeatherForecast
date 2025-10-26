@@ -29,17 +29,18 @@ class PredictionService:
         pass
 
     # function to de-standardize the data with loaded scaler
-    def deStandardizeData (self, data, loaded_scaler):
-
-        # 2. Reshape
+    def deStandardizeData(self, data, loaded_scaler):
+        # Take the set shape
         B, N, F, T = data.shape
-        data_reshaped = data.reshape(-1, F * T)
 
-        # 3. De-scale the data
-        data_descaled = loaded_scaler.transform(data_reshaped)
+        # Use the same shape as of standardization
+        data_reshaped = data.transpose(0, 1, 3, 2).reshape(-1, F)
 
-        # 4. Put the data into the original shape
-        data_descaled = data_descaled.reshape(B, N, F, T)
+        # Do the inverse transform
+        data_descaled = loaded_scaler.inverse_transform(data_reshaped)
+
+        # Put the data in teh original shape
+        data_descaled = data_descaled.reshape(B, N, T, F).transpose(0, 1, 3, 2)
 
         return data_descaled
 
@@ -116,7 +117,7 @@ class PredictionService:
                 data_sql_format = pd.concat([pd.DataFrame(np.full(len(prediction_df_format[prediction_df_format.columns[0]]), d)),
                                              prediction_df_format[["lat", "lng"]],
                                              prediction_df_format[d]], axis=1).set_axis(["date", "latitude",
-                                                                                           "longitude", "temperature"], axis=1)
+                                                                                           "longitude", config["variableToPredict"][point_step]], axis=1)
                 dataset_for_representation.append(data_sql_format)
             dataset_for_representation = pd.concat([df for df in dataset_for_representation], axis = 0).reset_index(drop=True)
             prediction_dataset.append(dataset_for_representation)

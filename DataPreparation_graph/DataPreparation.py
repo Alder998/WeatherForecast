@@ -221,6 +221,10 @@ class DataPreparation:
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
                                   window_size, horizon, distance_threshold, save_name):
 
+        # First, create model directory, if it does not exist
+        if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
+            os.mkdir("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name)
+
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
         dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
