@@ -19,7 +19,7 @@ class ModelServiceWrapper:
         classModule = dt.DataPreparation(grid_step=self.grid_step)
 
         # Train-test split
-        adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
+        adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
             start_date=start_date,
             end_date=end_date,
             variableToPredict=self.variableToPredict,
@@ -36,8 +36,7 @@ class ModelServiceWrapper:
                            test_labels=target_test,
                            validation_set=sample_validation,
                            validation_labels=target_validation).WaveNetTimeSpaceModel(
-                                                                                    adj_matrix_train=adj_matrix_norm_train,
-                                                                                    adj_matrix_test=adj_matrix_norm_test,
+                                                                                    adj_matrix=adj_matrix_norm,
                                                                                     model_params=model_params,
                                                                                     training_epochs=training_epochs,
                                                                                     save_name=self.model_name,

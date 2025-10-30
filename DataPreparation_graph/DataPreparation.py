@@ -134,7 +134,7 @@ class DataPreparation:
         return train_final, test_final, val_final
 
     # Utils-like function to process data from DataFrame to Graph
-    def createAdjacencyMatrix (self, dataInDataFrameFormat, padding_target, distance_threshold=100):
+    def createAdjacencyMatrix (self, dataInDataFrameFormat, distance_threshold=100):
 
         # 1. Create the Adjacency matrix
         # 1.1. Compute node id as incremental index
@@ -163,7 +163,7 @@ class DataPreparation:
         adj_matrix_norm_data["size"] = adj_matrix_norm.shape[0]  # could be both 0 or 1, since the matrix is squared
 
         # Apply padding to achieve the same size
-        adj_matrix_norm = self.applyNodesPaddingForAdjacency(adj_matrix_norm, padding_target)
+        #adj_matrix_norm = self.applyNodesPaddingForAdjacency(adj_matrix_norm, padding_target)
         # as well, store the matrix into the dict
         adj_matrix_norm_data["matrix"] = adj_matrix_norm
 
@@ -238,15 +238,11 @@ class DataPreparation:
 
         # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
-        adj_matrix_norm_train = self.createAdjacencyMatrix(dataInDataFrameFormat=train_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (TRAIN SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_train["matrix"].shape, "- steps without padding: ", adj_matrix_norm_train["size"])
-        adj_matrix_norm_test = self.createAdjacencyMatrix(dataInDataFrameFormat=test_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (TEST SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_test["matrix"].shape, "- steps without padding: ", adj_matrix_norm_test["size"])
-        adj_matrix_norm_validation = self.createAdjacencyMatrix(dataInDataFrameFormat=validation_set, distance_threshold=distance_threshold, padding_target=paddingTargetNodes)
-        print("DATA PREPARATION - INFO (VALIDATION SET): Shape of normalized Adjacency Matrix: ", adj_matrix_norm_validation["matrix"].shape, "- steps without padding: ", adj_matrix_norm_validation["size"])
+        adj_matrix_norm = self.createAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, distance_threshold=distance_threshold)
+        print("DATA PREPARATION - INFO: Shape of normalized (unique) Adjacency Matrix: ", adj_matrix_norm["matrix"].shape, " - Non-zero points: ", adj_matrix_norm["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix_train.npy", adj_matrix_norm_train["matrix"])
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
@@ -270,4 +266,4 @@ class DataPreparation:
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of Sample Matrix: ", sample_validation.shape, "- steps without padding: ", feature_matrix_validation["size"])
         print("DATA PREPARATION - INFO (VALIDATION SET): Shape of Target Matrix: ", target_validation.shape)
 
-        return adj_matrix_norm_train, adj_matrix_norm_test, adj_matrix_norm_validation, sample_train, target_train, sample_test, target_test, sample_validation, target_validation
+        return adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation

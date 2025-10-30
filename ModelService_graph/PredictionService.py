@@ -68,7 +68,7 @@ class PredictionService:
         # 1. Load the necessary Inputs
 
         # 1.1. Load the Adjacency Matrix
-        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\AdjacencyMatrix_train.npy")
+        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + self.model + "\\AdjacencyMatrix.npy")
         print("DATA PREPARATION FOR PREDICTION - Shape of loaded Adjacency Matrix: ", loaded_adjMatrix.shape)
 
         # 1.2. Load the Model

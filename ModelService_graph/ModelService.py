@@ -60,7 +60,7 @@ class ModelService:
         mask[:num_nodes_valid] = 1.0
         return mask
 
-    def WaveNetTimeSpaceModel (self, adj_matrix_train, adj_matrix_test, model_params, training_epochs,variableToPredict,
+    def WaveNetTimeSpaceModel (self, adj_matrix, model_params, training_epochs, variableToPredict,
                                end_date, save_name="model"):
 
         # First, create model directory, if it does not exist
@@ -85,13 +85,12 @@ class ModelService:
         # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
         n_blocks = len(model_params["dilations"])
 
-        model = gwn.GraphWaveNet(N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix_train["matrix"],
+        model = gwn.GraphWaveNet(N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix["matrix"],
                         channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
                         n_blocks=n_blocks, dilations=model_params["dilations"],
                         kernel_size=model_params["kernel_size"]).build_graph_wavenet()
 
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
-        node_mask_train = self.create_node_mask(num_nodes_valid=adj_matrix_train["size"], num_nodes_target=adj_matrix_train["matrix"].shape[0])
         model.compile(optimizer=optimizer,
                       loss=tf.keras.metrics.MSE,
                       metrics=[tf.keras.metrics.MAE])
@@ -108,8 +107,8 @@ class ModelService:
         # Evaluation on the test set + recompilation to use the custom loss to cope with different dimensions in padding
         print("MODEL EVALUATION - Re-Compiling the Model on test set for evaluation...")
         y_pred_test = model.predict(self.test_set, batch_size=4)
-        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix_test["size"],
-                                                      num_nodes_target=adj_matrix_test["matrix"].shape[0]),
+        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=adj_matrix["size"],
+                                                      num_nodes_target=adj_matrix["matrix"].shape[0]),
                                 dtype=tf.float32)
         # Prediction to take the last step
         # Save the last observation Layer in .npy to have it for prediction
