@@ -13,7 +13,6 @@ import joblib
 import DataPreparation_graph as dt
 from sklearn.preprocessing import StandardScaler
 
-
 class ModelService:
 
     def __init__(self, train_set, test_set, train_labels, test_labels, validation_set, validation_labels):
@@ -42,7 +41,8 @@ class ModelService:
         X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[3], set.shape[2]).transpose(0, 1, 3, 2)
 
         # Save the scaler + return the scaled numpy object
-        joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
+        if save_name != "None":
+            joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
 
         return X_scaled
 
@@ -76,11 +76,11 @@ class ModelService:
         # Standardize each one of the sets
         print("MODEL PREPARATION - Standardizing the sets...")
         self.train_set = self.standardizeSet(self.train_set, axis=2, save_name=save_name)
-        self.train_labels = self.standardizeSet(self.train_labels, axis=2, save_name=save_name)
-        self.test_set = self.standardizeSet(self.test_set, axis=2, save_name=save_name)
-        self.test_labels = self.standardizeSet(self.test_labels, axis=2, save_name=save_name)
-        self.validation_set = self.standardizeSet(self.validation_set, axis=2, save_name=save_name)
-        self.validation_labels = self.standardizeSet(self.validation_labels, axis=2, save_name=save_name)
+        self.train_labels = self.standardizeSet(self.train_labels, axis=2, save_name="None")
+        self.test_set = self.standardizeSet(self.test_set, axis=2, save_name="None")
+        self.test_labels = self.standardizeSet(self.test_labels, axis=2, save_name="None")
+        self.validation_set = self.standardizeSet(self.validation_set, axis=2, save_name="None")
+        self.validation_labels = self.standardizeSet(self.validation_labels, axis=2, save_name="None")
 
         # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
         n_blocks = len(model_params["dilations"])

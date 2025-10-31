@@ -1,19 +1,14 @@
 # Data Preparation Class (mainly functional) adapted for Graphs-processing
-import math
 import os
-import sys
 from sklearn.metrics.pairwise import haversine_distances
-from statsmodels.tsa.seasonal import STL
-from datetime import datetime
 from pvlib import solarposition
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
-from geopy.distance import geodesic
-from ModelStorageService import ModelStorageService as st
 from sklearn.model_selection import GroupShuffleSplit
+import networkx as nx
 
 class DataPreparation:
 
@@ -79,13 +74,6 @@ class DataPreparation:
         X_padded = np.zeros((num_nodes_target, num_vars, window), dtype=feature_matrix.dtype)
         X_padded[:num_nodes, :, :] = feature_matrix
         return X_padded
-
-    # Utils-like function to pad the Adjacency matrix to the correct number of nodes
-    def applyNodesPaddingForAdjacency (self, adj_matrix, num_nodes_target):
-        num_nodes = adj_matrix.shape[0]
-        A_padded = np.zeros((num_nodes_target, num_nodes_target), dtype=adj_matrix.dtype)
-        A_padded[:num_nodes, :num_nodes] = adj_matrix
-        return A_padded
 
     # Utils-like function to get the train and test size
     def getSetSize (self, set):
@@ -163,9 +151,13 @@ class DataPreparation:
         adj_matrix_norm_data["size"] = adj_matrix_norm.shape[0]  # could be both 0 or 1, since the matrix is squared
 
         # Apply padding to achieve the same size
-        #adj_matrix_norm = self.applyNodesPaddingForAdjacency(adj_matrix_norm, padding_target)
         # as well, store the matrix into the dict
         adj_matrix_norm_data["matrix"] = adj_matrix_norm
+
+        # Check for disconnected points within the adjusted Adjacency Matrix
+        G = nx.from_numpy_array(adj_matrix_norm)
+        comps = list(nx.connected_components(G))
+        print("INFO - ADJUSTED MATRIX: Connected Points:", len(comps))
 
         return adj_matrix_norm_data
 
