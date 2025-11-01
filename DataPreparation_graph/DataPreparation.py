@@ -1,10 +1,13 @@
 # Data Preparation Class (mainly functional) adapted for Graphs-processing
+
 import os
+import joblib
 from sklearn.metrics.pairwise import haversine_distances
 from pvlib import solarposition
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
+from sklearn.preprocessing import StandardScaler
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from sklearn.model_selection import GroupShuffleSplit
@@ -15,6 +18,29 @@ class DataPreparation:
     def __init__(self, grid_step):
         self.grid_step = grid_step
         pass
+
+    # Utils-like function to standardize the data and save the scaler
+    def standardizeSet (self, set, axis=3, save_name="scaler"):
+
+        # Set the axis to standardize the features
+        matrixDimension = set.shape[axis]  # = 2
+
+        # Put the feature at the end to be standardized
+        X_reshaped = set.transpose(0, 1, 3, 2).reshape(-1, matrixDimension)
+
+        # Fit scaler on F
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X_reshaped)
+
+        # Put everything into the original form
+        X_scaled = X_scaled.reshape(set.shape[0], set.shape[1], set.shape[3], set.shape[2]).transpose(0, 1, 3, 2)
+
+        # Save the scaler + return the scaled numpy object
+        if save_name != "None":
+            joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
+            print("INFO - Scaler Saved successfully within the model class.")
+
+        return X_scaled
 
     # Utils function to handle SQL-Database
     def dataClass (self, type ='db'):
@@ -146,6 +172,17 @@ class DataPreparation:
         D_inv = np.linalg.inv(D_hat)
         adj_matrix_norm = D_inv @ (adj_matrix + np.eye(adj_matrix.shape[0]))
 
+        # Apply self-loop
+        adj_matrix_norm = adj_matrix_norm.copy()
+        adj_matrix_norm = adj_matrix_norm + np.eye(adj_matrix_norm.shape[0])
+        # Insert significant connection if 0
+        thr = 1e-5
+        A_thr = np.where(adj_matrix_norm > thr, adj_matrix_norm, 0.0)
+        # Normalization
+        d = A_thr.sum(axis=1)
+        d_inv_sqrt = np.where(d > 0, 1.0 / np.sqrt(d), 0.0)
+        adj_matrix_norm = (d_inv_sqrt[:, None] * A_thr) * d_inv_sqrt[None, :]
+
         # Memorize the set size in a dict together with the matrix
         adj_matrix_norm_data = {}
         adj_matrix_norm_data["size"] = adj_matrix_norm.shape[0]  # could be both 0 or 1, since the matrix is squared
@@ -246,6 +283,13 @@ class DataPreparation:
         feature_matrix_validation = self.createFeaturesMatrix(dataInDataFrameFormat=validation_set,
                                                               variableToPredict=variableToPredict,
                                                               padding_target=paddingTargetNodes)
+        # Save the Scaler with the modelService
+        print("DATA PREPARATION - saving the all-data scaler...")
+        feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                         variableToPredict=variableToPredict,
+                                                         padding_target=paddingTargetNodes)
+        sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
+        self.standardizeSet(sample_all, axis=2, save_name=save_name)
 
         # 4. Create model-ready tensors
         sample_train, target_train = self.createModelTensors(set=feature_matrix_train["matrix"], window_size=window_size, horizon=horizon)
