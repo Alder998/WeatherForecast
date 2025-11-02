@@ -148,6 +148,31 @@ class DataPreparation:
 
         return train_final, test_final, val_final
 
+    # Utils-like function to apply time-split (no space split)
+    def timeSplit(self, dataInDataFrameFormat, test_size=0.3, validation_size=0.15):
+
+        # 1. Apply space split with nodes
+        # 1.1. Create node_id
+        dataInDataFrameFormat['node_id'] = dataInDataFrameFormat.groupby(['latitude', 'longitude']).ngroup()
+
+        # 2.2. Get the unique time stamps
+        times = sorted(dataInDataFrameFormat['date'].unique())
+        # 2.3 Create the thresholds for time
+        train_end = int(len(times) * (1-test_size))
+        val_end = int(len(times) * (1-test_size+validation_size))
+
+        # 2.4. divide the DataFrame index
+        train_time = times[:train_end]
+        val_time = times[train_end:val_end]
+        test_time = times[val_end:]
+
+        # 2.5. Apply the time split
+        train_final = dataInDataFrameFormat[dataInDataFrameFormat['date'].isin(train_time)]
+        val_final = dataInDataFrameFormat[dataInDataFrameFormat['date'].isin(val_time)]
+        test_final = dataInDataFrameFormat[dataInDataFrameFormat['date'].isin(test_time)]
+
+        return train_final, test_final, val_final
+
     # Utils-like function to process data from DataFrame to Graph
     def createAdjacencyMatrix (self, dataInDataFrameFormat, save_name, distance_threshold=100):
 
@@ -197,7 +222,7 @@ class DataPreparation:
         # Check for disconnected points within the adjusted Adjacency Matrix
         G = nx.from_numpy_array(adj_matrix_norm)
         comps = list(nx.connected_components(G))
-        print("INFO - ADJUSTED MATRIX: Connected Points:", len(comps))
+        print("INFO - CHECK ON ADJUSTED MATRIX: Connected Points:", len(comps), "(No issues)" if len(comps) == 1 else "(Warning)")
 
         return adj_matrix_norm_data
 
@@ -227,10 +252,21 @@ class DataPreparation:
         adj_matrix_norm_data = {}
         adj_matrix_norm_data["size"] = A_knn.shape[0]  # could be both 0 or 1, since the matrix is squared
 
-        # Apply padding to achieve the same size
+        # Add self loop
+        A_knn = A_knn + np.eye(A_knn.shape[0])
+
         # as well, store the matrix into the dict
         adj_matrix_norm_data["matrix"] = A_knn
 
+        # Check for disconnected nodes
+        row_sums = A_knn.sum(axis=1)
+        low_deg_nodes = np.where(row_sums < np.percentile(row_sums, 5))[0]
+        print("INFO - CHECK ON ADJUSTED MATRIX - Low-degree nodes:", len(low_deg_nodes), "(No issues)" if len(low_deg_nodes) == 0 else "(Warning)")
+
+        # Check for disconnected points within the adjusted Adjacency Matrix
+        G = nx.from_numpy_array(A_knn)
+        comps = list(nx.connected_components(G))
+        print("INFO - CHECK ON ADJUSTED MATRIX - Connected Points:", len(comps), "(No issues)" if len(comps) == 1 else "(Warning)")
 
         return adj_matrix_norm_data
 
@@ -264,7 +300,7 @@ class DataPreparation:
         feature_matrix_data["size"] = feature_matrix.shape[0]
 
         # Apply Padding for features
-        feature_matrix = self.applyNodesPaddingForFeatures(feature_matrix=feature_matrix, num_nodes_target=padding_target)
+        #feature_matrix = self.applyNodesPaddingForFeatures(feature_matrix=feature_matrix, num_nodes_target=padding_target)
         # Now store the matrix itself
         feature_matrix_data["matrix"] = feature_matrix
 
@@ -290,7 +326,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, distance_threshold, save_name):
+                                  window_size, horizon, save_name, matrix_params={}, split_method="time-space"):
 
         # First, create model directory, if it does not exist
         if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
@@ -303,13 +339,26 @@ class DataPreparation:
         paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
         # 1. time-space Split with appropriate libraries
-        train_set, test_set, validation_set = self.timeSpaceSplit(dataInDataFrameFormat=dataInDataFrameFormat,
+        if split_method == "time-space":
+            train_set, test_set, validation_set = self.timeSpaceSplit(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                                     test_size=test_size,
+                                                                     validation_size=validation_size)
+        elif split_method == "time":
+            train_set, test_set, validation_set = self.timeSplit(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                  test_size=test_size,
                                                                  validation_size=validation_size)
+        else:
+            raise Exception("Split Method: " + split_method + " has not been implemented!")
 
         # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
-        adj_matrix_norm = self.createAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, distance_threshold=distance_threshold, save_name=save_name)
+        if matrix_params["type"] == "distance":
+            adj_matrix_norm = self.createAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, distance_threshold=matrix_params["threshold"], save_name=save_name)
+        elif matrix_params["type"] == "KNN":
+            adj_matrix_norm = self.createKNNAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, nn=matrix_params["threshold"], save_name=save_name)
+        else:
+            raise Exception("ERROR! the calculation type: " + matrix_params["type"] + " has not been implemented!")
+
         print("DATA PREPARATION - INFO: Shape of normalized (unique) Adjacency Matrix: ", adj_matrix_norm["matrix"].shape, " - Non-zero points: ", adj_matrix_norm["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format

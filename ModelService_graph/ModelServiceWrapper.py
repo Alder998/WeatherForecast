@@ -13,7 +13,7 @@ class ModelServiceWrapper:
         pass
 
     def trainAndSaveGraphModel (self, model_params, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
-                                distance_threshold, training_epochs):
+                                matrix_params, split_method, training_epochs):
 
         # Instantiate the class
         classModule = dt.DataPreparation(grid_step=self.grid_step)
@@ -27,8 +27,9 @@ class ModelServiceWrapper:
             validation_size=validation_size,
             window_size=window_size,
             horizon=prediction_horizon,
-            distance_threshold=distance_threshold,
-            save_name=self.model_name)
+            matrix_params=matrix_params,
+            save_name=self.model_name,
+            split_method=split_method)
 
         model.ModelService(train_set=sample_train,
                            train_labels=target_train,
