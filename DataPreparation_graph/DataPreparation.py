@@ -12,6 +12,7 @@ from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
 from sklearn.model_selection import GroupShuffleSplit
 import networkx as nx
+from sklearn.neighbors import NearestNeighbors
 
 class DataPreparation:
 
@@ -148,11 +149,13 @@ class DataPreparation:
         return train_final, test_final, val_final
 
     # Utils-like function to process data from DataFrame to Graph
-    def createAdjacencyMatrix (self, dataInDataFrameFormat, distance_threshold=100):
+    def createAdjacencyMatrix (self, dataInDataFrameFormat, save_name, distance_threshold=100):
 
         # 1. Create the Adjacency matrix
         # 1.1. Compute node id as incremental index
-        nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True)
+        nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
+        # Save the coords order
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
         nodeMapping = nodeMapping.reset_index()
         nodeMapping = nodeMapping.rename(columns={"index" : "node_id"})
 
@@ -198,7 +201,43 @@ class DataPreparation:
 
         return adj_matrix_norm_data
 
-    def createFeaturesMatrix (self, dataInDataFrameFormat, padding_target, variableToPredict=[]):
+    # Utils-like function to create KNN-based Adjacency Matrix
+    def createKNNAdjacencyMatrix (self, dataInDataFrameFormat, save_name, nn=10):
+
+        # 1. Create the Adjacency matrix
+        # 1.1. Compute node id as incremental index
+        nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
+        # Save the coords order
+        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+
+        # N must be the size of the square matrix (if grid=0.22 it must be 716)
+        N = len(nodeMapping[nodeMapping.columns[0]])
+
+        nbrs = NearestNeighbors(n_neighbors=nn + 1).fit(nodeMapping)
+        distances, indices = nbrs.kneighbors(nodeMapping)
+        # Build an Adjacency Matrix
+        A_knn = np.zeros((N, N))
+        for i in range(N):
+            for j in indices[i, 1:]:  # skip self
+                A_knn[i, j] = 1
+        # Make it simmetric
+        A_knn = np.maximum(A_knn, A_knn.T)
+
+        # Memorize the set size in a dict together with the matrix
+        adj_matrix_norm_data = {}
+        adj_matrix_norm_data["size"] = A_knn.shape[0]  # could be both 0 or 1, since the matrix is squared
+
+        # Apply padding to achieve the same size
+        # as well, store the matrix into the dict
+        adj_matrix_norm_data["matrix"] = A_knn
+
+
+        return adj_matrix_norm_data
+
+    def createFeaturesMatrix (self, dataInDataFrameFormat, padding_target, save_name, variableToPredict=[]):
+
+        # 0. Load the coords order to avoid mismatches with different coords
+        coords_ref = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy")
 
         # 1. get the number of unique coords
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
@@ -207,12 +246,15 @@ class DataPreparation:
         for enumUniqueTS, uniqueTS in enumerate(dataInDataFrameFormat['date'].unique()):
             dataInDataFrameFormat.loc[dataInDataFrameFormat["date"] == uniqueTS, "time_index"] = enumUniqueTS
         # 2.1. Initialize the empty matrix for features: the shape must be (grid_steps, variables, time steps)
-        feature_matrix = np.zeros((coords, len(variableToPredict), len(dataInDataFrameFormat['date'].unique())))
+        feature_matrix = np.zeros((len(coords_ref), len(variableToPredict), len(dataInDataFrameFormat['date'].unique())))
 
         # 2.2. Map indexes and nodes, and fill the matrix
-        node_ids = {(lat, lon): i for i, (lat, lon) in enumerate(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)}
+        node_ids = {tuple(c): i for i, c in enumerate(coords_ref)}
         for idx, row in dataInDataFrameFormat.iterrows():
-            i = node_ids[(row['latitude'], row['longitude'])]
+            key = (row['latitude'], row['longitude'])
+            if key not in node_ids:
+                continue
+            i = node_ids[key]
             t = int(row["time_index"])
             for f_idx, feature in enumerate(variableToPredict):
                 feature_matrix[i, f_idx, t] = row[feature]
@@ -267,7 +309,7 @@ class DataPreparation:
 
         # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
-        adj_matrix_norm = self.createAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, distance_threshold=distance_threshold)
+        adj_matrix_norm = self.createAdjacencyMatrix(dataInDataFrameFormat=dataInDataFrameFormat, distance_threshold=distance_threshold, save_name=save_name)
         print("DATA PREPARATION - INFO: Shape of normalized (unique) Adjacency Matrix: ", adj_matrix_norm["matrix"].shape, " - Non-zero points: ", adj_matrix_norm["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format
@@ -276,20 +318,23 @@ class DataPreparation:
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
                                                          variableToPredict=variableToPredict,
-                                                         padding_target=paddingTargetNodes)
+                                                         padding_target=paddingTargetNodes,
+                                                         save_name=save_name)
         feature_matrix_test = self.createFeaturesMatrix(dataInDataFrameFormat=test_set,
                                                         variableToPredict=variableToPredict,
-                                                        padding_target=paddingTargetNodes)
+                                                        padding_target=paddingTargetNodes,
+                                                        save_name=save_name)
         feature_matrix_validation = self.createFeaturesMatrix(dataInDataFrameFormat=validation_set,
                                                               variableToPredict=variableToPredict,
-                                                              padding_target=paddingTargetNodes)
+                                                              padding_target=paddingTargetNodes,
+                                                              save_name=save_name)
         # Save the Scaler with the modelService
-        print("DATA PREPARATION - saving the all-data scaler...")
-        feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
-                                                         variableToPredict=variableToPredict,
-                                                         padding_target=paddingTargetNodes)
-        sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
-        self.standardizeSet(sample_all, axis=2, save_name=save_name)
+        #print("DATA PREPARATION - saving the all-data scaler...")
+        #feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
+        #                                                 variableToPredict=variableToPredict,
+        #                                                 padding_target=paddingTargetNodes, save_name=save_name)
+        #sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
+        #self.standardizeSet(sample_all, axis=2, save_name=save_name)
 
         # 4. Create model-ready tensors
         sample_train, target_train = self.createModelTensors(set=feature_matrix_train["matrix"], window_size=window_size, horizon=horizon)

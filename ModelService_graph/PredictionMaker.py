@@ -22,6 +22,6 @@ except:
     print("No internet available! Map Graph will not be shown!")
 
 timeSeriesForCity = locl.LocalizedWeather().getPredictionTimeSeriesOnTargetVariable (predictedDf=prediction_data,
-                                                                                     city='Lavagna',
+                                                                                     city='Perugia',
                                                                                      predictedVariable="temperature",
                                                                                      confidence_levels=False)

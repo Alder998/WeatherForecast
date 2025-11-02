@@ -75,7 +75,7 @@ class ModelService:
 
         # Standardize each one of the sets
         print("MODEL PREPARATION - Standardizing the sets...")
-        self.train_set = self.standardizeSet(self.train_set, axis=2, save_name="None")
+        self.train_set = self.standardizeSet(self.train_set, axis=2, save_name=save_name)
         self.train_labels = self.standardizeSet(self.train_labels, axis=2, save_name="None")
         self.test_set = self.standardizeSet(self.test_set, axis=2, save_name="None")
         self.test_labels = self.standardizeSet(self.test_labels, axis=2, save_name="None")
