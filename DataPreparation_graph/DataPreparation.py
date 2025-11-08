@@ -326,7 +326,8 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, save_name, matrix_params={}, split_method="time-space"):
+                                  window_size, horizon, save_name, matrix_params={}, split_method="time-space",
+                                  all_data_scaler=False):
 
         # First, create model directory, if it does not exist
         if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
@@ -378,12 +379,13 @@ class DataPreparation:
                                                               padding_target=paddingTargetNodes,
                                                               save_name=save_name)
         # Save the Scaler with the modelService
-        #print("DATA PREPARATION - saving the all-data scaler...")
-        #feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
-        #                                                 variableToPredict=variableToPredict,
-        #                                                 padding_target=paddingTargetNodes, save_name=save_name)
-        #sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
-        #self.standardizeSet(sample_all, axis=2, save_name=save_name)
+        if all_data_scaler:
+            print("DATA PREPARATION - saving the all-data scaler...")
+            feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
+                                                             variableToPredict=variableToPredict,
+                                                             padding_target=paddingTargetNodes, save_name=save_name)
+            sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
+            self.standardizeSet(sample_all, axis=2, save_name=save_name)
 
         # 4. Create model-ready tensors
         sample_train, target_train = self.createModelTensors(set=feature_matrix_train["matrix"], window_size=window_size, horizon=horizon)
