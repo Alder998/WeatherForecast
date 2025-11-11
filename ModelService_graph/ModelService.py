@@ -132,7 +132,8 @@ class ModelService:
             "model_user_params": model_params,  # Model params set by the user
             "model_params": {"N": N_train, "F_in": F_in, "W": W, "H": H, "n_blocks": n_blocks},
             "variableToPredict": variableToPredict,
-            "end_date": end_date
+            "end_date": end_date,
+            "epochs": training_epochs
         }
         # Save config
         with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_config.h5", "w") as f:
