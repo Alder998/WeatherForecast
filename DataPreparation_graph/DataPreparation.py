@@ -270,7 +270,7 @@ class DataPreparation:
 
         return adj_matrix_norm_data
 
-    def createFeaturesMatrix (self, dataInDataFrameFormat, padding_target, save_name, variableToPredict=[]):
+    def createFeaturesMatrix (self, dataInDataFrameFormat, save_name, variableToPredict=[]):
 
         # 0. Load the coords order to avoid mismatches with different coords
         coords_ref = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy")
@@ -368,15 +368,12 @@ class DataPreparation:
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
                                                          variableToPredict=variableToPredict,
-                                                         padding_target=paddingTargetNodes,
                                                          save_name=save_name)
         feature_matrix_test = self.createFeaturesMatrix(dataInDataFrameFormat=test_set,
                                                         variableToPredict=variableToPredict,
-                                                        padding_target=paddingTargetNodes,
                                                         save_name=save_name)
         feature_matrix_validation = self.createFeaturesMatrix(dataInDataFrameFormat=validation_set,
                                                               variableToPredict=variableToPredict,
-                                                              padding_target=paddingTargetNodes,
                                                               save_name=save_name)
         # Save the Scaler with the modelService
         if all_data_scaler:
