@@ -141,3 +141,78 @@ class ModelService:
         print("MODEL TRAINING - Model config saved correctly.")
 
         return loss_test
+
+    # Method to load the model and continue the training
+    def continueModelTraining (self, model_name, new_epochs):
+
+        # 0. Copy the procedure to load and process the data
+
+        # 0.1. Standardize each one of the new sets
+        print("MODEL PREPARATION - Standardizing the sets...")
+        self.train_set = self.standardizeSet(self.train_set, axis=2, save_name=model_name)
+        self.train_labels = self.standardizeSet(self.train_labels, axis=2, save_name="None")
+        self.test_set = self.standardizeSet(self.test_set, axis=2, save_name="None")
+        self.test_labels = self.standardizeSet(self.test_labels, axis=2, save_name="None")
+        self.validation_set = self.standardizeSet(self.validation_set, axis=2, save_name="None")
+        self.validation_labels = self.standardizeSet(self.validation_labels, axis=2, save_name="None")
+
+        # 1.1. Load the Model Config
+        print("MODEL TRAINING CONTINUATION - Loading Model Weights and config...")
+        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_config.h5", "r") as f:
+            config = json.load(f)
+
+        # 1.2. Load the Adjusted Matrix
+        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\AdjacencyMatrix.npy")
+
+        # 1.3. Re-build the model with existing params
+        model = gwn.GraphWaveNet(N=config["model_params"]["N"], F_in=config["model_params"]["F_in"], W=config["model_params"]["W"],
+                                 H=config["model_params"]["H"], n_blocks=config["model_params"]["n_blocks"],
+                                 channels_s=config["model_user_params"]["channels_s"],
+                                 channels_t=config["model_user_params"]["channels_t"],
+                                 dilations=config["model_user_params"]["dilations"],
+                                 kernel_size=config["model_user_params"]["kernel_size"],
+                                 A=loaded_adjMatrix).build_graph_wavenet()
+
+        # 1.4. Load the existing weights
+        model.load_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_weights.weights.h5")
+
+        # 2. Re-train the existing model with new data (or new Epochs)
+        optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
+        model.compile(optimizer=optimizer,
+                      loss=tf.keras.metrics.MSE,
+                      metrics=[tf.keras.metrics.MAE])
+
+        history = model.fit(
+            self.train_set, self.train_labels,
+            validation_data=(self.validation_set, self.validation_labels),
+            epochs=new_epochs,
+            batch_size=4,
+            verbose=1
+        )
+
+        # 3. Predict for evaluation
+        y_pred_test = model.predict(self.test_set, batch_size=4)
+        mask_test = tf.constant(self.create_node_mask(num_nodes_valid=loaded_adjMatrix.shape[0],
+                                                      num_nodes_target=loaded_adjMatrix.shape[0]), dtype=tf.float32)
+        loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()
+        print("MODEL EVALUATION - MSE on test set: ", loss_test)
+
+        # 4. Save and over-write weights and configs into the save directory
+        print("MODEL TRAINING CONTINUATION - Saving model...")
+        model.save_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_weights.weights.h5")
+        print("MODEL TRAINING CONTINUATION - updated-Model Weights correctly.")
+        new_config = {
+            "model_class": "GraphWaveNet",
+            "model_user_params": config["model_user_params"],  # Model params set by the user
+            "model_params": {"N": config["model_params"]["N"], "F_in": config["model_params"]["F_in"],
+                             "W": config["model_params"]["W"], "H": config["model_params"]["N"],
+                             "n_blocks": config["model_params"]["n_blocks"]},
+            "variableToPredict": config["variableToPredict"],
+            "end_date": config["end_date"],
+            "epochs": int(config["epochs"]) + new_epochs
+        }
+        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_config.h5", "w") as f:
+            json.dump(config, f, indent=4)
+        print("MODEL TRAINING CONTINUATION - updated-Model config saved correctly.")
+
+        return loss_test

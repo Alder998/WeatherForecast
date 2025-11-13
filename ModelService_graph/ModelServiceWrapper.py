@@ -45,3 +45,33 @@ class ModelServiceWrapper:
                                                                                     variableToPredict=self.variableToPredict,
                                                                                     end_date=end_date
                                                                                     )
+
+    # Method to continue the Model training loading the existing model
+    def continueModelTraining (self, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
+                                matrix_params, split_method, new_epochs):
+
+        # The data prep class is always required
+        # Instantiate the class
+        classModule = dt.DataPreparation(grid_step=self.grid_step)
+
+        # Train-test split
+        adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
+            start_date=start_date,
+            end_date=end_date,
+            variableToPredict=self.variableToPredict,
+            test_size=test_size,
+            validation_size=validation_size,
+            window_size=window_size,
+            horizon=prediction_horizon,
+            matrix_params=matrix_params,
+            save_name=self.model_name,
+            split_method=split_method)
+
+        # Ad-hoc method within modelService to load and continue model training
+        model.ModelService(train_set=sample_train,
+                           train_labels=target_train,
+                           test_set=sample_test,
+                           test_labels=target_test,
+                           validation_set=sample_validation,
+                           validation_labels=target_validation).continueModelTraining(model_name=self.model_name,
+                                                                                      new_epochs=new_epochs)

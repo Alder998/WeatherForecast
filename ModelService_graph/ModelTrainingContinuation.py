@@ -1,14 +1,11 @@
-# Class to test the model
+# Class to continue Model Training after checkpoint more easily
 
 from ModelService_graph import ModelServiceWrapper as model
 
 # Prepare data + train + save the model params
 model.ModelServiceWrapper(grid_step=0.22,
-                          model_name="graph-3mo-1v-96h-cloud",
-                          variableToPredict=["cloudCover"]).trainAndSaveGraphModel(model_params={"channels_t": 32,
-                                                                                                  "channels_s": 32,
-                                                                                                  "dilations": (1, 2, 4, 6, 8),
-                                                                                                  "kernel_size": 2},
+                          model_name="graph-3mo-1v-96h",
+                          variableToPredict=["cloudCover"]).continueModelTraining(
                                                                                     start_date="2025-08-01",
                                                                                     end_date="2025-10-07",
                                                                                     split_method="time", # "time-space" | "time"
@@ -18,5 +15,5 @@ model.ModelServiceWrapper(grid_step=0.22,
                                                                                     prediction_horizon=96,
                                                                                     matrix_params={"type": "KNN",  # "KNN" | "distance"
                                                                                                    "threshold": 300},
-                                                                                    training_epochs=15
+                                                                                    new_epochs=3
                                                                                     )
