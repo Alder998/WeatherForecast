@@ -4,7 +4,7 @@ from ModelService_graph import ModelServiceWrapper as model
 
 # Prepare data + train + save the model params
 model.ModelServiceWrapper(grid_step=0.22,
-                          model_name="graph-3mo-1v-96h",
+                          model_name="graph-3mo-1v-96h-cloud",
                           variableToPredict=["cloudCover"]).continueModelTraining(
                                                                                     start_date="2025-08-01",
                                                                                     end_date="2025-10-07",
@@ -15,5 +15,4 @@ model.ModelServiceWrapper(grid_step=0.22,
                                                                                     prediction_horizon=96,
                                                                                     matrix_params={"type": "KNN",  # "KNN" | "distance"
                                                                                                    "threshold": 300},
-                                                                                    new_epochs=3
-                                                                                    )
+                                                                                    new_epochs=1)

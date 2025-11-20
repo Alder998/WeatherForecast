@@ -112,42 +112,6 @@ class DataPreparation:
 
         return tcheck
 
-    # Utils-like function to have a time-spacial split for the data
-    def timeSpaceSplit (self, dataInDataFrameFormat, test_size=0.3, validation_size=0.15):
-
-        # 1. Apply space split with nodes
-        # 1.1. Create node_id
-        dataInDataFrameFormat['node_id'] = dataInDataFrameFormat.groupby(['latitude', 'longitude']).ngroup()
-        # 1.2. Split using sk-learn
-        splitter = GroupShuffleSplit(test_size=test_size, n_splits=1, random_state=1893)
-        train_idx, test_idx = next(splitter.split(dataInDataFrameFormat, groups=dataInDataFrameFormat['node_id']))
-        # 1.3. Divide the DataFrame
-        df_train_spatial = dataInDataFrameFormat.iloc[train_idx]
-        df_test_spatial = dataInDataFrameFormat.iloc[test_idx]
-
-        # 2. Time split
-        # 2.1. Sort by date
-        df_train_spatial = df_train_spatial.sort_values('date')
-        df_test_spatial = df_test_spatial.sort_values('date')
-
-        # 2.2. Get the unique time stamps
-        times = sorted(df_train_spatial['date'].unique())
-        # 2.3 Create the thresholds for time
-        train_end = int(len(times) * (1-test_size))
-        val_end = int(len(times) * (1-test_size+validation_size))
-
-        # 2.4. divide the DataFrame index
-        train_time = times[:train_end]
-        val_time = times[train_end:val_end]
-        test_time = times[val_end:]
-
-        # 2.5. Apply the time split
-        train_final = df_train_spatial[df_train_spatial['date'].isin(train_time)]
-        val_final = df_train_spatial[df_train_spatial['date'].isin(val_time)]
-        test_final = df_test_spatial[df_test_spatial['date'].isin(test_time)]
-
-        return train_final, test_final, val_final
-
     # Utils-like function to apply time-split (no space split)
     def timeSplit(self, dataInDataFrameFormat, test_size=0.3, validation_size=0.15):
 
@@ -326,8 +290,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, save_name, matrix_params={}, split_method="time-space",
-                                  all_data_scaler=False):
+                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False):
 
         # First, create model directory, if it does not exist
         if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
@@ -340,16 +303,9 @@ class DataPreparation:
         paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
         # 1. time-space Split with appropriate libraries
-        if split_method == "time-space":
-            train_set, test_set, validation_set = self.timeSpaceSplit(dataInDataFrameFormat=dataInDataFrameFormat,
-                                                                     test_size=test_size,
-                                                                     validation_size=validation_size)
-        elif split_method == "time":
-            train_set, test_set, validation_set = self.timeSplit(dataInDataFrameFormat=dataInDataFrameFormat,
+        train_set, test_set, validation_set = self.timeSplit(dataInDataFrameFormat=dataInDataFrameFormat,
                                                                  test_size=test_size,
                                                                  validation_size=validation_size)
-        else:
-            raise Exception("Split Method: " + split_method + " has not been implemented!")
 
         # 2. Create Adjacency Matrix for each one of the sets (the dimensions are padded)
         print("DATA PREPARATION - Converting DataFrame into graph...")
