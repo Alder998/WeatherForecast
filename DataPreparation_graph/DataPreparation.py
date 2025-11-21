@@ -243,14 +243,15 @@ class DataPreparation:
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
         # 2. Create the Feature Matrix: that is where you store your variables of interest
-        for enumUniqueTS, uniqueTS in enumerate(dataInDataFrameFormat['date'].unique()):
-            dataInDataFrameFormat.loc[dataInDataFrameFormat["date"] == uniqueTS, "time_index"] = enumUniqueTS
+        dataInDataFrameFormat1 = dataInDataFrameFormat.copy()
+        for enumUniqueTS, uniqueTS in enumerate(dataInDataFrameFormat1['date'].unique()):
+            dataInDataFrameFormat1.loc[dataInDataFrameFormat1["date"] == uniqueTS, "time_index"] = enumUniqueTS
         # 2.1. Initialize the empty matrix for features: the shape must be (grid_steps, variables, time steps)
-        feature_matrix = np.zeros((len(coords_ref), len(variableToPredict), len(dataInDataFrameFormat['date'].unique())))
+        feature_matrix = np.zeros((len(coords_ref), len(variableToPredict), len(dataInDataFrameFormat1['date'].unique())))
 
         # 2.2. Map indexes and nodes, and fill the matrix
         node_ids = {tuple(c): i for i, c in enumerate(coords_ref)}
-        for idx, row in dataInDataFrameFormat.iterrows():
+        for idx, row in dataInDataFrameFormat1.iterrows():
             key = (row['latitude'], row['longitude'])
             if key not in node_ids:
                 continue
