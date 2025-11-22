@@ -82,7 +82,7 @@ class DataPreparation:
 
         # Here we are implementing a .csv reader
         print("MODEL DATA - Reading from .csv stored data")
-        csv_data = pd.read_csv(user.user_getter(self.environment) + "weatherForecast.csv")
+        csv_data = pd.read_csv(user.user_getter(self.environment) + "weatherForecast_reduced.csv")
         csv_data.columns = ["date", "latitude", "longitude", "temperature", "precipitation", "humidity_mean",
                             "windSpeed", "cloudCover", "pressure_msl", "row_number"]
         return csv_data.drop(columns=['row_number'])
