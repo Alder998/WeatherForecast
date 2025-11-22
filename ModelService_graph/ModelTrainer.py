@@ -4,10 +4,10 @@ from ModelService_graph import ModelServiceWrapper as model
 
 # Prepare data + train + save the model params
 model.ModelServiceWrapper(grid_step=0.22,
-                          model_name="graph-3mo-1v-96h-temperature-small",
-                          variableToPredict=["temperature"]).trainAndSaveGraphModel(model_params={"channels_t": 32,
+                          model_name="graph-3mo-1v-96h-clouds-small",
+                          variableToPredict=["cloudCover"]).trainAndSaveGraphModel(model_params={"channels_t": 32,
                                                                                                   "channels_s": 32,
-                                                                                                  "dilations": (1, 2),
+                                                                                                  "dilations": [1, 2],
                                                                                                   "kernel_size": 2},
                                                                                     start_date="2025-09-01",
                                                                                     end_date="2025-10-07",

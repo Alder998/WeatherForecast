@@ -39,7 +39,13 @@ class DataPreparation:
 
         # Save the scaler + return the scaled numpy object
         if save_name != "None":
-            joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
+            if self.environment == "local":
+                joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
+            elif self.environment == "cola-drive":
+                joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/scaler.pkl")
+            else:
+                raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
             print("INFO - Scaler Saved successfully within the model class.")
 
         return X_scaled
@@ -154,7 +160,13 @@ class DataPreparation:
         # 1.1. Compute node id as incremental index
         nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
         # Save the coords order
-        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+        if self.environment == "local":
+            np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy",nodeMapping.values)
+        elif self.environment == "colab-drive":
+            np.save(user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/coords_order.npy",nodeMapping.values)
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
         nodeMapping = nodeMapping.reset_index()
         nodeMapping = nodeMapping.rename(columns={"index" : "node_id"})
 
@@ -207,7 +219,12 @@ class DataPreparation:
         # 1.1. Compute node id as incremental index
         nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
         # Save the coords order
-        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+        if self.environment == "local":
+            np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+        elif self.environment == "colab-drive":
+            np.save(user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/coords_order.npy",nodeMapping.values)
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
         # N must be the size of the square matrix (if grid=0.22 it must be 716)
         N = len(nodeMapping[nodeMapping.columns[0]])
@@ -247,7 +264,12 @@ class DataPreparation:
     def createFeaturesMatrix (self, dataInDataFrameFormat, save_name, variableToPredict=[]):
 
         # 0. Load the coords order to avoid mismatches with different coords
-        coords_ref = np.load( user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy")
+        if self.environment=="local":
+            coords_ref = np.load( user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy")
+        elif self.environment == "colab-drive":
+            coords_ref = np.load( user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/coords_order.npy")
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
         # 1. get the number of unique coords
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
@@ -309,6 +331,8 @@ class DataPreparation:
                 os.mkdir(user.user_getter(user=self.environment) + "Stored-models\\" + save_name)
             elif self.environment == "colab-drive":
                 os.mkdir(user.user_getter(user=self.environment) + "Stored-models/" + save_name)
+            else:
+                raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
@@ -338,7 +362,12 @@ class DataPreparation:
         print("DATA PREPARATION - INFO: Shape of normalized (unique) Adjacency Matrix: ", adj_matrix_norm["matrix"].shape, " - Non-zero points: ", adj_matrix_norm["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format
-        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
+        if self.environment == "local":
+            np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
+        elif self.environment == "colab-drive":
+            np.save(user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,

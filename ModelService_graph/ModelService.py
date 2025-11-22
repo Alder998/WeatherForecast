@@ -39,7 +39,13 @@ class ModelService:
 
         # Save the scaler + return the scaled numpy object
         if save_name != "None":
-            joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
+            if self.environment == "local":
+                joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
+            elif self.environment == "colab-drive":
+                joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/scaler.pkl")
+            else:
+                raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
 
         return X_scaled
 
@@ -113,7 +119,13 @@ class ModelService:
         # take only the last window-hours, so that you can load this layer easily and use it for prediction
         Y_last_obs = Y_last_obs[:, :, :, -W:]
         print("MODEL TRAINING: Last Observation shape:", Y_last_obs.shape)
-        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
+        if self.environment == "local":
+            np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
+        elif self.environment == "colab-drive":
+            np.save(user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/last_obs_layer.npy", Y_last_obs)
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
 
         # Print prediction size to be able to build the prediction framework faster
         print("MODEL EVALUATION - INFO: prediction size on test set: ", y_pred_test.shape)
@@ -122,7 +134,13 @@ class ModelService:
 
         # Save weights and configs into the save directory
         print("MODEL TRAINING - Saving model...")
-        model.save_weights(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_weights.weights.h5")
+        if self.environment == "local":
+            model.save_weights(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_weights.weights.h5")
+        elif self.environment == "colab-drive":
+            model.save_weights(user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/model_weights.weights.h5")
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
         print("MODEL TRAINING - Model Weights correctly.")
         config = {
             "model_class": "GraphWaveNet",
