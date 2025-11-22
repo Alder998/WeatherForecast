@@ -13,10 +13,10 @@ class ModelServiceWrapper:
         pass
 
     def trainAndSaveGraphModel (self, model_params, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
-                                matrix_params, training_epochs):
+                                matrix_params, training_epochs, environment):
 
         # Instantiate the class
-        classModule = dt.DataPreparation(grid_step=self.grid_step)
+        classModule = dt.DataPreparation(grid_step=self.grid_step, environment=environment)
 
         # Train-test split
         adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
@@ -36,7 +36,8 @@ class ModelServiceWrapper:
                            test_set=sample_test,
                            test_labels=target_test,
                            validation_set=sample_validation,
-                           validation_labels=target_validation).WaveNetTimeSpaceModel(
+                           validation_labels=target_validation,
+                           environment=environment).WaveNetTimeSpaceModel(
                                                                                     adj_matrix=adj_matrix_norm,
                                                                                     model_params=model_params,
                                                                                     training_epochs=training_epochs,
@@ -48,11 +49,11 @@ class ModelServiceWrapper:
 
     # Method to continue the Model training loading the existing model
     def continueModelTraining (self, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
-                                matrix_params, new_epochs):
+                                matrix_params, new_epochs, environment):
 
         # The data prep class is always required
         # Instantiate the class
-        classModule = dt.DataPreparation(grid_step=self.grid_step)
+        classModule = dt.DataPreparation(grid_step=self.grid_step, environment=environment)
 
         # Train-test split
         adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
@@ -72,5 +73,6 @@ class ModelServiceWrapper:
                            test_set=sample_test,
                            test_labels=target_test,
                            validation_set=sample_validation,
-                           validation_labels=target_validation).continueModelTraining(model_name=self.model_name,
+                           validation_labels=target_validation,
+                           environment=environment).continueModelTraining(model_name=self.model_name,
                                                                                       new_epochs=new_epochs)

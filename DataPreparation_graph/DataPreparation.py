@@ -10,14 +10,15 @@ from dotenv import load_dotenv
 from sklearn.preprocessing import StandardScaler
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
-from sklearn.model_selection import GroupShuffleSplit
 import networkx as nx
 from sklearn.neighbors import NearestNeighbors
+from UserService import User_getter as user
 
 class DataPreparation:
 
-    def __init__(self, grid_step):
+    def __init__(self, grid_step, environment):
         self.grid_step = grid_step
+        self.environment = environment
         pass
 
     # Utils-like function to standardize the data and save the scaler
@@ -38,7 +39,7 @@ class DataPreparation:
 
         # Save the scaler + return the scaled numpy object
         if save_name != "None":
-            joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
+            joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
             print("INFO - Scaler Saved successfully within the model class.")
 
         return X_scaled
@@ -144,7 +145,7 @@ class DataPreparation:
         # 1.1. Compute node id as incremental index
         nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
         # Save the coords order
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
         nodeMapping = nodeMapping.reset_index()
         nodeMapping = nodeMapping.rename(columns={"index" : "node_id"})
 
@@ -197,7 +198,7 @@ class DataPreparation:
         # 1.1. Compute node id as incremental index
         nodeMapping = dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().reset_index(drop=True).sort_values(['latitude', 'longitude'])
         # Save the coords order
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
+        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy", nodeMapping.values)
 
         # N must be the size of the square matrix (if grid=0.22 it must be 716)
         N = len(nodeMapping[nodeMapping.columns[0]])
@@ -237,7 +238,7 @@ class DataPreparation:
     def createFeaturesMatrix (self, dataInDataFrameFormat, save_name, variableToPredict=[]):
 
         # 0. Load the coords order to avoid mismatches with different coords
-        coords_ref = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\coords_order.npy")
+        coords_ref = np.load( user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\coords_order.npy")
 
         # 1. get the number of unique coords
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
@@ -294,8 +295,8 @@ class DataPreparation:
                                   window_size, horizon, save_name, matrix_params={}, all_data_scaler=False):
 
         # First, create model directory, if it does not exist
-        if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
-            os.mkdir("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name)
+        if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
+            os.mkdir(user.user_getter(user=self.environment) + "Stored-models\\" + save_name)
 
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
@@ -320,7 +321,7 @@ class DataPreparation:
         print("DATA PREPARATION - INFO: Shape of normalized (unique) Adjacency Matrix: ", adj_matrix_norm["matrix"].shape, " - Non-zero points: ", adj_matrix_norm["size"])
 
         # 2.1. Save the adjacency matrix used for training in .npy format
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
+        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\AdjacencyMatrix.npy", adj_matrix_norm["matrix"])
 
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,

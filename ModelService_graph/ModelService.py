@@ -1,27 +1,24 @@
 # This class is to create a Neural Network Library Built upon TensorFlow
 
 import numpy as np
-from keras.src.layers import Input
-from tensorflow.keras import layers, models
 import tensorflow as tf
-from TensorFlowService import STBlock as stb
 from TensorFlowService import GraphWaveNet as gwn
-from ModelStorageService import ModelStorageService as st
 import json
 import os
 import joblib
-import DataPreparation_graph as dt
 from sklearn.preprocessing import StandardScaler
+from UserService import User_getter as user
 
 class ModelService:
 
-    def __init__(self, train_set, test_set, train_labels, test_labels, validation_set, validation_labels):
+    def __init__(self, train_set, test_set, train_labels, test_labels, validation_set, validation_labels, environment):
         self.train_set = train_set
         self.test_set = test_set
         self.train_labels = train_labels
         self.test_labels = test_labels
         self.validation_set = validation_set
         self.validation_labels = validation_labels
+        self.environment = environment
         pass
 
     # Utils-like function to standardize the sets according to a given dimensions
@@ -42,7 +39,7 @@ class ModelService:
 
         # Save the scaler + return the scaled numpy object
         if save_name != "None":
-            joblib.dump(scaler, "D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\scaler.pkl")
+            joblib.dump(scaler, user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\scaler.pkl")
 
         return X_scaled
 
@@ -64,8 +61,8 @@ class ModelService:
                                end_date, save_name="model"):
 
         # First, create model directory, if it does not exist
-        if not os.path.exists("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name):
-            os.mkdir("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name)
+        if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
+            os.mkdir(user.user_getter(user=self.environment) + "Stored-models\\" + save_name)
 
         # Extract Dimensions from input set
         N_train = self.train_set.shape[1]
@@ -116,7 +113,7 @@ class ModelService:
         # take only the last window-hours, so that you can load this layer easily and use it for prediction
         Y_last_obs = Y_last_obs[:, :, :, -W:]
         print("MODEL TRAINING: Last Observation shape:", Y_last_obs.shape)
-        np.save("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
+        np.save(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\last_obs_layer.npy", Y_last_obs)
 
         # Print prediction size to be able to build the prediction framework faster
         print("MODEL EVALUATION - INFO: prediction size on test set: ", y_pred_test.shape)
@@ -125,7 +122,7 @@ class ModelService:
 
         # Save weights and configs into the save directory
         print("MODEL TRAINING - Saving model...")
-        model.save_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_weights.weights.h5")
+        model.save_weights(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_weights.weights.h5")
         print("MODEL TRAINING - Model Weights correctly.")
         config = {
             "model_class": "GraphWaveNet",
@@ -136,7 +133,7 @@ class ModelService:
             "epochs": training_epochs
         }
         # Save config
-        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + save_name + "\\model_config.h5", "w") as f:
+        with open(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_config.h5", "w") as f:
             json.dump(config, f, indent=4)
         print("MODEL TRAINING - Model config saved correctly.")
 
@@ -158,11 +155,11 @@ class ModelService:
 
         # 1.1. Load the Model Config
         print("MODEL TRAINING CONTINUATION - Loading Model Weights and config...")
-        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_config.h5", "r") as f:
+        with open(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\model_config.h5", "r") as f:
             config = json.load(f)
 
         # 1.2. Load the Adjusted Matrix
-        loaded_adjMatrix = np.load("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\AdjacencyMatrix.npy")
+        loaded_adjMatrix = np.load(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\AdjacencyMatrix.npy")
 
         # 1.3. Re-build the model with existing params
         model = gwn.GraphWaveNet(N=config["model_params"]["N"], F_in=config["model_params"]["F_in"], W=config["model_params"]["W"],
@@ -174,7 +171,7 @@ class ModelService:
                                  A=loaded_adjMatrix).build_graph_wavenet()
 
         # 1.4. Load the existing weights
-        model.load_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_weights.weights.h5")
+        model.load_weights(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\model_weights.weights.h5")
 
         # 2. Re-train the existing model with new data (or new Epochs)
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
@@ -199,7 +196,7 @@ class ModelService:
 
         # 4. Save and over-write weights and configs into the save directory
         print("MODEL TRAINING CONTINUATION - Saving model...")
-        model.save_weights("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_weights.weights.h5")
+        model.save_weights(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\model_weights.weights.h5")
         print("MODEL TRAINING CONTINUATION - updated-Model Weights correctly.")
         new_config = {
             "model_class": "GraphWaveNet",
@@ -211,7 +208,7 @@ class ModelService:
             "end_date": config["end_date"],
             "epochs": int(config["epochs"]) + new_epochs
         }
-        with open("D:\\PythonProjects-Storage\\WeatherForecast\\Stored-models\\" + model_name + "\\model_config.h5", "w") as f:
+        with open(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\model_config.h5", "w") as f:
             json.dump(config, f, indent=4)
         print("MODEL TRAINING CONTINUATION - updated-Model config saved correctly.")
 

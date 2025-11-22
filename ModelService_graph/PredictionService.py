@@ -13,8 +13,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from DatabaseManager import Database as db
 from DatabaseManager import DatabasePlugin_dask as dk
-from DataPreparation_graph import DataPreparation as dt
-import tensorflow as tf
 from ModelService_graph.TensorFlowService import GraphWaveNet as gwn
 import joblib
 import json
