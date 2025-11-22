@@ -72,6 +72,15 @@ class DataPreparation:
                                              end_date + "'")
         return dataFromQuery.drop(columns=['row_number'])
 
+    def getDataWindowFromCSV (self):
+
+        # Here we are implementing a .csv reader
+        print("MODEL DATA - Reading from .csv stored data")
+        csv_data = pd.read_csv(user.user_getter(self.environment) + "weatherForecast.csv")
+        csv_data.columns = ["date", "latitude", "longitude", "temperature", "precipitation", "humidity_mean",
+                            "windSpeed", "cloudCover", "pressure_msl", "row_number"]
+        return csv_data.drop(columns=['row_number'])
+
     # utils-like function to compute the solar angle in a faster way, in order to save computation and time
     def computeSolarInclinationFromDataFrame (self, dataframe):
         # For assumption, we can divide the dataFrame in 716 different single coordinates, that has been gathered in a
@@ -296,11 +305,19 @@ class DataPreparation:
 
         # First, create model directory, if it does not exist
         if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
-            os.mkdir(user.user_getter(user=self.environment) + "Stored-models\\" + save_name)
+            if self.environment == "local":
+                os.mkdir(user.user_getter(user=self.environment) + "Stored-models\\" + save_name)
+            elif self.environment == "colab-drive":
+                os.mkdir(user.user_getter(user=self.environment) + "Stored-models/" + save_name)
 
         # 0. Get data from database
         print("DATA PREPARATION - Extracting data from Database...")
-        dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
+        if self.environment == "local":
+            dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
+        elif self.environment == "colab-drive":
+            dataInDataFrameFormat = self.getDataWindowFromCSV().dropna()
+        else:
+            raise Exception("User " + str(user) + " not implemented!")
         # 0.1. Extract the total number of coordinates to use it during padding
         paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
