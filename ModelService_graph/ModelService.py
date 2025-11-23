@@ -2,7 +2,7 @@
 
 import numpy as np
 import tensorflow as tf
-from TensorFlowService import GraphWaveNet as gwn
+from ModelService_graph.TensorFlowService import GraphWaveNet as gwn
 import json
 import os
 import joblib
