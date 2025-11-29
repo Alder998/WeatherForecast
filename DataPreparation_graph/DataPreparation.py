@@ -78,11 +78,11 @@ class DataPreparation:
                                              end_date + "'")
         return dataFromQuery.drop(columns=['row_number'])
 
-    def getDataWindowFromCSV (self):
+    def getDataWindowFromCSV (self, csv_path="reduced"):
 
         # Here we are implementing a .csv reader
         print("MODEL DATA - Reading from .csv stored data")
-        csv_data = pd.read_csv(user.user_getter(self.environment) + "weatherForecast_reduced.csv")
+        csv_data = pd.read_csv(user.user_getter(self.environment) + user.csv_path_getter(csv_path) + ".csv")
         csv_data.columns = ["date", "latitude", "longitude", "temperature", "precipitation", "humidity_mean",
                             "windSpeed", "cloudCover", "pressure_msl", "row_number"]
         return csv_data.drop(columns=['row_number'])

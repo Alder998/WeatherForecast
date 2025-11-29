@@ -46,7 +46,6 @@ class ModelService:
             else:
                 raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
-
         return X_scaled
 
     # Utils-like function to create a custom loss that would ignore padding during training phase

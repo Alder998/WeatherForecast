@@ -7,3 +7,12 @@ def user_getter(user):
         return "/content/drive/MyDrive/WeatherForecast/"
     else:
         raise Exception("User " + str(user) + " not implemented!")
+
+# This is only valid for .csv file
+def csv_path_getter(path):
+    if path == "full":
+        return "weatherForecast"
+    elif user == "reduced":
+        return "weatherForecast_reduced"
+    else:
+        raise Exception("User " + str(user) + " not implemented!")
