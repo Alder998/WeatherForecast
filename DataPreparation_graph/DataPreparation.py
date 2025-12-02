@@ -323,7 +323,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False):
+                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False, dataset_csv="reduced"):
 
         # First, create model directory, if it does not exist
         if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
@@ -339,7 +339,7 @@ class DataPreparation:
         if self.environment == "local":
             dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
         elif self.environment == "colab-drive":
-            dataInDataFrameFormat = self.getDataWindowFromCSV().dropna()
+            dataInDataFrameFormat = self.getDataWindowFromCSV(csv_path=dataset_csv).dropna()
         else:
             raise Exception("User " + str(user) + " not implemented!")
         # 0.1. Extract the total number of coordinates to use it during padding

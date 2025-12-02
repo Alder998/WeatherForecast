@@ -12,7 +12,7 @@ def user_getter(user):
 def csv_path_getter(path):
     if path == "full":
         return "weatherForecast"
-    elif user == "reduced":
+    elif path == "reduced":
         return "weatherForecast_reduced"
     else:
-        raise Exception("User " + str(user) + " not implemented!")
+        raise Exception("User " + str(path) + " not implemented!")

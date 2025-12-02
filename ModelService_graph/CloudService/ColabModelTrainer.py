@@ -16,4 +16,5 @@ cmodel.CloudModelServiceWrapper().trainAndSaveGraphModelOnCloudMachine(model_nam
                                                                        matrix_params={"type": "KNN",
                                                                                       "threshold": 300},
                                                                        training_epochs=3,
-                                                                       environment="local")
+                                                                       environment="local",
+                                                                       dataset_csv="full")
