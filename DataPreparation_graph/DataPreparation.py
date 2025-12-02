@@ -81,7 +81,7 @@ class DataPreparation:
     def getDataWindowFromCSV (self, csv_path="reduced"):
 
         # Here we are implementing a .csv reader
-        print("MODEL DATA - Reading from .csv stored data")
+        print("MODEL DATA - Reading from .csv stored data (dataset: " + csv_path + ")")
         csv_data = pd.read_csv(user.user_getter(self.environment) + user.csv_path_getter(csv_path) + ".csv")
         csv_data.columns = ["date", "latitude", "longitude", "temperature", "precipitation", "humidity_mean",
                             "windSpeed", "cloudCover", "pressure_msl", "row_number"]
