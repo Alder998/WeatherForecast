@@ -149,8 +149,15 @@ class ModelService:
             "end_date": end_date,
             "epochs": training_epochs
         }
-        # Save config
-        with open(user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_config.h5", "w") as f:
+        # Save config according the environment
+        if self.environment == "local":
+            path_config = user.user_getter(user=self.environment) + "Stored-models\\" + save_name + "\\model_config.h5"
+        elif self.environment == "colab-drive":
+            path_config = user.user_getter(user=self.environment) + "Stored-models/" + save_name + "/model_config.h5"
+        else:
+            raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
+
+        with open(path_config, "w") as f:
             json.dump(config, f, indent=4)
         print("MODEL TRAINING - Model config saved correctly.")
 
