@@ -78,14 +78,18 @@ class DataPreparation:
                                              end_date + "'")
         return dataFromQuery.drop(columns=['row_number'])
 
-    def getDataWindowFromCSV (self, csv_path="reduced"):
+    def getDataWindowFromCSV (self, start_date, end_date):
 
         # Here we are implementing a .csv reader
-        print("MODEL DATA - Reading from .csv stored data (dataset: " + csv_path + ")")
-        csv_data = pd.read_csv(user.user_getter(self.environment) + user.csv_path_getter(csv_path) + ".csv")
+        print("MODEL DATA - Reading from .csv stored data...")
+        csv_data = pd.read_csv(user.user_getter(self.environment) + "weatherForecast.csv")
         csv_data.columns = ["date", "latitude", "longitude", "temperature", "precipitation", "humidity_mean",
                             "windSpeed", "cloudCover", "pressure_msl", "row_number"]
-        return csv_data.drop(columns=['row_number'])
+        # Filter for start and end dates
+        print("Filtering .csv data for selected dates...")
+        data_filtered = csv_data[pd.to_datetime(csv_data["date"]).between(start_date, end_date)]
+        data_filtered = data_filtered.sort_values(by="date", ascending=True).reset_index(drop=True)
+        return data_filtered.drop(columns=['row_number'])
 
     # utils-like function to compute the solar angle in a faster way, in order to save computation and time
     def computeSolarInclinationFromDataFrame (self, dataframe):
@@ -323,7 +327,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False, dataset_csv="reduced"):
+                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False):
 
         # First, create model directory, if it does not exist
         if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
@@ -339,7 +343,7 @@ class DataPreparation:
         if self.environment == "local":
             dataInDataFrameFormat = self.getDataWindow(start_date=start_date, end_date=end_date).dropna()
         elif self.environment == "colab-drive":
-            dataInDataFrameFormat = self.getDataWindowFromCSV(csv_path=dataset_csv).dropna()
+            dataInDataFrameFormat = self.getDataWindowFromCSV(start_date=start_date, end_date=end_date).dropna()
         else:
             raise Exception("User " + str(user) + " not implemented!")
         # 0.1. Extract the total number of coordinates to use it during padding

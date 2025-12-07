@@ -10,23 +10,22 @@ class CloudModelServiceWrapper:
         pass
 
     def trainAndSaveGraphModelOnCloudMachine (self, model_name, variableToPredict, model_params, test_size, validation_size, window_size, prediction_horizon,
-                                matrix_params, training_epochs, environment, dataset_csv="reduced"):
+                                matrix_params, training_epochs, environment, start_date, end_date):
 
         # Instantiate the class
         classModule = dt.DataPreparation(grid_step="", environment=environment)
 
         # Train-test split
         adj_matrix_norm, sample_train, target_train, sample_test, target_test, sample_validation, target_validation = classModule.prepareDataForGraphModel(
-            start_date="",
-            end_date="",
+            start_date=start_date,
+            end_date=end_date,
             variableToPredict=variableToPredict,
             test_size=test_size,
             validation_size=validation_size,
             window_size=window_size,
             horizon=prediction_horizon,
             matrix_params=matrix_params,
-            save_name=model_name,
-            dataset_csv=dataset_csv
+            save_name=model_name
         )
 
         model.ModelService(train_set=sample_train,

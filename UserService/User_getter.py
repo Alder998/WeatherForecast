@@ -1,4 +1,5 @@
 # Simple user-getter class to handle both cloud and local environment
+from sklearn.utils import deprecated
 
 def user_getter(user):
     if user == "local":
@@ -9,6 +10,7 @@ def user_getter(user):
         raise Exception("User " + str(user) + " not implemented!")
 
 # This is only valid for .csv file
+@deprecated
 def csv_path_getter(path):
     if path == "full":
         return "weatherForecast"
