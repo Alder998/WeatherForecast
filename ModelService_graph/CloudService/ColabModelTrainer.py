@@ -17,4 +17,5 @@ cmodel.CloudModelServiceWrapper().trainAndSaveGraphModelOnCloudMachine(model_nam
                                                                                       "threshold": 300},
                                                                        training_epochs=3,
                                                                        environment="local",
-                                                                       dataset_csv="full")
+                                                                       start_date="2025-04-07",
+                                                                       end_date="2025-10-07")
