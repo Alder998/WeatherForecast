@@ -125,7 +125,6 @@ class ModelService:
         else:
             raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
-
         # Print prediction size to be able to build the prediction framework faster
         print("MODEL EVALUATION - INFO: prediction size on test set: ", y_pred_test.shape)
         loss_test = self.masked_mse(self.test_labels, y_pred_test, mask_test).numpy()

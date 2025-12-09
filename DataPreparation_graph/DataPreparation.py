@@ -388,7 +388,7 @@ class DataPreparation:
             print("DATA PREPARATION - saving the all-data scaler...")
             feature_matrix_all = self.createFeaturesMatrix(dataInDataFrameFormat=dataInDataFrameFormat,
                                                              variableToPredict=variableToPredict,
-                                                             padding_target=paddingTargetNodes, save_name=save_name)
+                                                             save_name=save_name)
             sample_all, target_all = self.createModelTensors(set=feature_matrix_all["matrix"], window_size=window_size, horizon=horizon)
             self.standardizeSet(sample_all, axis=2, save_name=save_name)
 
