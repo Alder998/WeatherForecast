@@ -300,8 +300,6 @@ class DataPreparation:
         feature_matrix_data = {}
         feature_matrix_data["size"] = feature_matrix.shape[0]
 
-        # Apply Padding for features
-        #feature_matrix = self.applyNodesPaddingForFeatures(feature_matrix=feature_matrix, num_nodes_target=padding_target)
         # Now store the matrix itself
         feature_matrix_data["matrix"] = feature_matrix
 

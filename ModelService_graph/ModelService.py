@@ -62,6 +62,7 @@ class ModelService:
         mask[:num_nodes_valid] = 1.0
         return mask
 
+    # Function to launch the main model
     def WaveNetTimeSpaceModel (self, adj_matrix, model_params, training_epochs, variableToPredict,
                                end_date, save_name="model"):
 
@@ -87,6 +88,7 @@ class ModelService:
         # n_blocks has to be the same as the length of the dilations tuple (for b, d in enumerate(dilations[:n_blocks]))
         n_blocks = len(model_params["dilations"])
 
+        # Create the model infrastructure with the ad-hoc model class
         model = gwn.GraphWaveNet(N=N_train, F_in=F_in, W=W, H=H, A=adj_matrix["matrix"],
                         channels_t=model_params["channels_t"], channels_s=model_params["channels_s"],
                         n_blocks=n_blocks, dilations=model_params["dilations"],
