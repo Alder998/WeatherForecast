@@ -275,6 +275,14 @@ class DataPreparation:
         else:
             raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
+        # 0. In order to maintain the trend of values, it may be useful to compute a trend component + use it as a feature
+        for vtp in variableToPredict:
+            if "_trend" not in vtp:
+                print("DATA PREPARATION - INFO - Adding mean to the features to stabilize the trend...")
+                for singleCoord in (dataInDataFrameFormat['latitude'].astype(str) + "_" + dataInDataFrameFormat['longitude'].astype(str)).unique():
+                    dataInDataFrameFormat.loc[(dataInDataFrameFormat["latitude"] == float(singleCoord.split("_")[0])) &
+                                              (dataInDataFrameFormat["longitude"] == float(singleCoord.split("_")[1])), vtp + "_trend"] = dataInDataFrameFormat[vtp][(dataInDataFrameFormat["latitude"] == float(singleCoord.split("_")[0])) & (dataInDataFrameFormat["longitude"] == float(singleCoord.split("_")[1]))].mean()
+
         # 1. get the number of unique coords
         coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 

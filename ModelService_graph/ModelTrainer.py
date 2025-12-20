@@ -5,7 +5,7 @@ from ModelService_graph import ModelServiceWrapper as model
 # Prepare data + train + save the model params (min. time_steps: time_steps - window_size - horizon + 1, for every sample possible)
 model.ModelServiceWrapper(grid_step=0.22,
                           model_name="graph-3mo-1v-96h-temperature-small",
-                          variableToPredict=["temperature"]).trainAndSaveGraphModel(model_params={"channels_t": 32,
+                          variableToPredict=["temperature", "temperature_trend"]).trainAndSaveGraphModel(model_params={"channels_t": 32,
                                                                                                   "channels_s": 32,
                                                                                                   "dilations": [24, 48, 168, 720],
                                                                                                   "kernel_size": 2},
