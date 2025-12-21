@@ -95,9 +95,21 @@ class ModelService:
                         kernel_size=model_params["kernel_size"]).build_graph_wavenet()
 
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
+        # Define the loss (custom - MSE)
+        def MSE_detrended(true_feature, pred_feature):
+            # y_true, y_pred: (batch, nodes, features, time)
+            temp_true = true_feature[:, :, 0, :]
+            temp_pred = pred_feature[:, :, 0, :]
+            return tf.reduce_mean(tf.square(temp_true - temp_pred))
+        # Define the loss (custom - MAE)
+        def MAE_detrended(y_true, y_pred):
+            temp_true = y_true[:, :, 0, :]
+            temp_pred = y_pred[:, :, 0, :]
+            return tf.reduce_mean(tf.abs(temp_true - temp_pred))
+
         model.compile(optimizer=optimizer,
-                      loss=tf.keras.metrics.MSE,
-                      metrics=[tf.keras.metrics.MAE])
+                      loss=MSE_detrended,
+                      metrics=[MAE_detrended])
 
         # Training: A_train is "frozen" implicitly inside the training algorithm
         history = model.fit(
