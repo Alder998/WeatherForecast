@@ -98,14 +98,32 @@ class ModelService:
         # Define the loss (custom - MSE)
         def MSE_detrended(true_feature, pred_feature):
             # y_true, y_pred: (batch, nodes, features, time)
-            temp_true = true_feature[:, :, 0, :]
-            temp_pred = pred_feature[:, :, 0, :]
-            return tf.reduce_mean(tf.square(temp_true - temp_pred))
+            # Select the variables with no "_trend" in name
+            dtrVar_true = []
+            dtrVar_pred = []
+            for i, v in enumerate(variableToPredict):
+                if "_trend" not in v:
+                    temp_true = true_feature[:, :, i, :]
+                    temp_pred = pred_feature[:, :, i, :]
+                    dtrVar_true.append(temp_true)
+                    dtrVar_pred.append(temp_pred)
+            dtrVar_true = tf.stack(dtrVar_true,axis=2)
+            dtrVar_pred = tf.stack(dtrVar_pred,axis=2)
+            return tf.reduce_mean(tf.square(dtrVar_true - dtrVar_pred))
         # Define the loss (custom - MAE)
         def MAE_detrended(y_true, y_pred):
-            temp_true = y_true[:, :, 0, :]
-            temp_pred = y_pred[:, :, 0, :]
-            return tf.reduce_mean(tf.abs(temp_true - temp_pred))
+            # Select the variables with no "_trend" in name
+            dtrVar_true = []
+            dtrVar_pred = []
+            for i, v in enumerate(variableToPredict):
+                if "_trend" not in v:
+                    temp_true = y_true[:, :, i, :]
+                    temp_pred = y_pred[:, :, i, :]
+                    dtrVar_true.append(temp_true)
+                    dtrVar_pred.append(temp_pred)
+            dtrVar_true = tf.stack(dtrVar_true,axis=2)
+            dtrVar_pred = tf.stack(dtrVar_pred,axis=2)
+            return tf.reduce_mean(tf.abs(dtrVar_true - dtrVar_pred))
 
         model.compile(optimizer=optimizer,
                       loss=MSE_detrended,
@@ -212,9 +230,41 @@ class ModelService:
 
         # 2. Re-train the existing model with new data (or new Epochs)
         optimizer = tf.keras.optimizers.Adam(clipnorm=1.0)
+
+        # 3. As you did before, if required, Define the loss (custom - MSE)
+        variableToPredict = config["variableToPredict"]
+        def MSE_detrended(true_feature, pred_feature):
+            # y_true, y_pred: (batch, nodes, features, time)
+            # Select the variables with no "_trend" in name
+            dtrVar_true = []
+            dtrVar_pred = []
+            for i, v in enumerate(variableToPredict):
+                if "_trend" not in v:
+                    temp_true = true_feature[:, :, i, :]
+                    temp_pred = pred_feature[:, :, i, :]
+                    dtrVar_true.append(temp_true)
+                    dtrVar_pred.append(temp_pred)
+            dtrVar_true = tf.stack(dtrVar_true,axis=2)
+            dtrVar_pred = tf.stack(dtrVar_pred,axis=2)
+            return tf.reduce_mean(tf.square(dtrVar_true - dtrVar_pred))
+        # Define the loss (custom - MAE)
+        def MAE_detrended(y_true, y_pred):
+            # Select the variables with no "_trend" in name
+            dtrVar_true = []
+            dtrVar_pred = []
+            for i, v in enumerate(variableToPredict):
+                if "_trend" not in v:
+                    temp_true = y_true[:, :, i, :]
+                    temp_pred = y_pred[:, :, i, :]
+                    dtrVar_true.append(temp_true)
+                    dtrVar_pred.append(temp_pred)
+            dtrVar_true = tf.stack(dtrVar_true,axis=2)
+            dtrVar_pred = tf.stack(dtrVar_pred,axis=2)
+            return tf.reduce_mean(tf.abs(dtrVar_true - dtrVar_pred))
+
         model.compile(optimizer=optimizer,
-                      loss=tf.keras.metrics.MSE,
-                      metrics=[tf.keras.metrics.MAE])
+                      loss=MSE_detrended,
+                      metrics=[MAE_detrended])
 
         history = model.fit(
             self.train_set, self.train_labels,
@@ -246,7 +296,7 @@ class ModelService:
             "epochs": int(config["epochs"]) + new_epochs
         }
         with open(user.user_getter(user=self.environment) + "Stored-models\\" + model_name + "\\model_config.h5", "w") as f:
-            json.dump(config, f, indent=4)
+            json.dump(new_config, f, indent=4)
         print("MODEL TRAINING CONTINUATION - updated-Model config saved correctly.")
 
         return loss_test

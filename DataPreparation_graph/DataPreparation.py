@@ -265,7 +265,7 @@ class DataPreparation:
 
         return adj_matrix_norm_data
 
-    def createFeaturesMatrix (self, dataInDataFrameFormat, save_name, variableToPredict=[]):
+    def createFeaturesMatrix (self, dataInDataFrameFormat, save_name, variableToPredict=[], stabilize_trend=False):
 
         # 0. Load the coords order to avoid mismatches with different coords
         if self.environment=="local":
@@ -275,19 +275,20 @@ class DataPreparation:
         else:
             raise Exception("The environment: " + str() + " does not exist! available 'local' | 'colab-drive'")
 
-        # 0. In order to maintain the trend of values, it may be useful to compute a trend component + use it as a feature
-        for vtp in variableToPredict:
-            if "_trend" not in vtp:
-                print("DATA PREPARATION - INFO - Adding mean to the features to stabilize the trend...")
-                for singleCoord in (dataInDataFrameFormat['latitude'].astype(str) + "_" + dataInDataFrameFormat['longitude'].astype(str)).unique():
-                    dataInDataFrameFormat.loc[(dataInDataFrameFormat["latitude"] == float(singleCoord.split("_")[0])) &
-                                              (dataInDataFrameFormat["longitude"] == float(singleCoord.split("_")[1])), vtp + "_trend"] = dataInDataFrameFormat[vtp][(dataInDataFrameFormat["latitude"] == float(singleCoord.split("_")[0])) & (dataInDataFrameFormat["longitude"] == float(singleCoord.split("_")[1]))].mean()
-
-        # 1. get the number of unique coords
-        coords = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
+        # 1. Try to stabilize the trend (temporarily with mean) if needed
+        dataInDataFrameFormatM = dataInDataFrameFormat.copy()
+        if stabilize_trend:
+            for vtp in variableToPredict:
+                if "_trend" not in vtp:
+                    if vtp + "_trend" not in variableToPredict:
+                        variableToPredict.append(vtp + "_trend")
+                    print("DATA PREPARATION - INFO - Adding mean to the features to stabilize the trend...")
+                    for singleCoord in (dataInDataFrameFormatM['latitude'].astype(str) + "_" + dataInDataFrameFormatM['longitude'].astype(str)).unique():
+                        dataInDataFrameFormatM.loc[(dataInDataFrameFormatM["latitude"] == float(singleCoord.split("_")[0])) &
+                                                  (dataInDataFrameFormatM["longitude"] == float(singleCoord.split("_")[1])), vtp + "_trend"] = dataInDataFrameFormatM[vtp][(dataInDataFrameFormatM["latitude"] == float(singleCoord.split("_")[0])) & (dataInDataFrameFormatM["longitude"] == float(singleCoord.split("_")[1]))].mean()
 
         # 2. Create the Feature Matrix: that is where you store your variables of interest
-        dataInDataFrameFormat1 = dataInDataFrameFormat.copy()
+        dataInDataFrameFormat1 = dataInDataFrameFormatM.copy()
         for enumUniqueTS, uniqueTS in enumerate(dataInDataFrameFormat1['date'].unique()):
             dataInDataFrameFormat1.loc[dataInDataFrameFormat1["date"] == uniqueTS, "time_index"] = enumUniqueTS
         # 2.1. Initialize the empty matrix for features: the shape must be (grid_steps, variables, time steps)
@@ -333,7 +334,7 @@ class DataPreparation:
 
     # Main function to prepare data for graphs processing
     def prepareDataForGraphModel (self, start_date, end_date, variableToPredict, test_size, validation_size,
-                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False):
+                                  window_size, horizon, save_name, matrix_params={}, all_data_scaler=False, stabilize_trend=False):
 
         # First, create model directory, if it does not exist
         if not os.path.exists(user.user_getter(user=self.environment) + "Stored-models\\" + save_name):
@@ -352,8 +353,6 @@ class DataPreparation:
             dataInDataFrameFormat = self.getDataWindowFromCSV(start_date=start_date, end_date=end_date).dropna()
         else:
             raise Exception("User " + str(user) + " not implemented!")
-        # 0.1. Extract the total number of coordinates to use it during padding
-        paddingTargetNodes = len(dataInDataFrameFormat[['latitude', 'longitude']].drop_duplicates().values)
 
         # 1. time-space Split with appropriate libraries
         train_set, test_set, validation_set = self.timeSplit(dataInDataFrameFormat=dataInDataFrameFormat,
@@ -382,13 +381,16 @@ class DataPreparation:
         # 3. Create feature Matrix for each one of the sets
         feature_matrix_train = self.createFeaturesMatrix(dataInDataFrameFormat=train_set,
                                                          variableToPredict=variableToPredict,
-                                                         save_name=save_name)
+                                                         save_name=save_name,
+                                                         stabilize_trend=stabilize_trend)
         feature_matrix_test = self.createFeaturesMatrix(dataInDataFrameFormat=test_set,
                                                         variableToPredict=variableToPredict,
-                                                        save_name=save_name)
+                                                        save_name=save_name,
+                                                        stabilize_trend=stabilize_trend)
         feature_matrix_validation = self.createFeaturesMatrix(dataInDataFrameFormat=validation_set,
                                                               variableToPredict=variableToPredict,
-                                                              save_name=save_name)
+                                                              save_name=save_name,
+                                                              stabilize_trend=stabilize_trend)
         # Save the Scaler with the modelService
         if all_data_scaler:
             print("DATA PREPARATION - saving the all-data scaler...")

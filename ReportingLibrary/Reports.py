@@ -8,10 +8,10 @@ import LocalizedWeather as locl
 #                                                                        grid_step = 0.22)
 
 comparison = locl.LocalizedWeather().compareWeatherForCities(city1 = 'Milano',
-                                                             city2 = 'Roma',
+                                                             city2 = 'Lavagna',
                                                              aggregation = 'hourly',
-                                                             start_date="2025-10-01",
-                                                             end_date = "2025-10-07",
+                                                             start_date="2025-12-01",
+                                                             end_date = "2025-12-20",
                                                              grid_step = 0.22,
                                                              save = {"save":True,
-                                                                     "save_name":r"C:\Users\alder\Downloads\Milano VS Roma 2025_agosto.png"})
+                                                                     "save_name":r"C:\Users\alder\Downloads\Milano VS Lavagna 2025_dicembre.png"})

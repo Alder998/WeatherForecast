@@ -4,10 +4,10 @@ import PredictionService as p
 from ReportingLibrary import Animations as ani
 from ReportingLibrary import LocalizedWeather as locl
 
-model_name = "graph-3mo-1v-96h-temperature-small"
+model_name = "graph-1mo-5v-96h-wmean"
 
 # Instantiate the class
-prediction_data = p.PredictionService(model=model_name).predictWithStoredModel(grid_step=0.22, start_date="2025-10-07")
+prediction_data = p.PredictionService(model=model_name).predictWithStoredModel(grid_step=0.22, start_date="2025-12-20")
 
 # Report Part
 try:

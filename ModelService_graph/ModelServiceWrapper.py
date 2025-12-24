@@ -13,7 +13,7 @@ class ModelServiceWrapper:
         pass
 
     def trainAndSaveGraphModel (self, model_params, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
-                                matrix_params, training_epochs, environment):
+                                matrix_params, training_epochs, stabilize_trend, environment):
 
         # Instantiate the class
         classModule = dt.DataPreparation(grid_step=self.grid_step, environment=environment)
@@ -28,7 +28,8 @@ class ModelServiceWrapper:
             window_size=window_size,
             horizon=prediction_horizon,
             matrix_params=matrix_params,
-            save_name=self.model_name
+            save_name=self.model_name,
+            stabilize_trend=stabilize_trend
         )
 
         model.ModelService(train_set=sample_train,
@@ -49,7 +50,7 @@ class ModelServiceWrapper:
 
     # Method to continue the Model training loading the existing model
     def continueModelTraining (self, start_date, end_date, test_size, validation_size, window_size, prediction_horizon,
-                                matrix_params, new_epochs, environment):
+                                matrix_params, new_epochs, stabilize_trend, environment):
 
         # The data prep class is always required
         # Instantiate the class
@@ -65,7 +66,9 @@ class ModelServiceWrapper:
             window_size=window_size,
             horizon=prediction_horizon,
             matrix_params=matrix_params,
-            save_name=self.model_name)
+            save_name=self.model_name,
+            stabilize_trend=stabilize_trend
+        )
 
         # Ad-hoc method within modelService to load and continue model training
         model.ModelService(train_set=sample_train,
